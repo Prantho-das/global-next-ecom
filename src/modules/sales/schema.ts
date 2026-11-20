@@ -211,10 +211,16 @@ export const payments = pgTable(
       .notNull()
       .references(() => orders.id, { onDelete: "cascade" }),
     method: text("method").notNull().default("cod"),
+    gatewayProvider: text("gateway_provider"),
     status: text("status").notNull().default("pending"),
+    txnId: text("txn_id"),
+    gatewayTxnId: text("gateway_txn_id"),
     amount: integer("amount").notNull(),
+    refundedAmount: integer("refunded_amount").notNull().default(0),
     currency: text("currency").notNull().default("BDT"),
+    rawResponse: jsonb("raw_response").$type<Record<string, unknown>>(),
     idempotencyKey: text("idempotency_key").notNull(),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

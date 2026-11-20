@@ -4,6 +4,9 @@ import { Pool } from "pg";
 import { getEnv } from "@/lib/env";
 import * as authSchema from "@/modules/auth/schema";
 import * as catalogSchema from "@/modules/catalog/schema";
+import * as courierSchema from "@/modules/courier/schema";
+import * as fraudSchema from "@/modules/fraud/schema";
+import * as paymentSchema from "@/modules/payment/schema";
 import * as pricingSchema from "@/modules/pricing/schema";
 import * as rbacSchema from "@/modules/rbac/schema";
 import * as salesSchema from "@/modules/sales/schema";
@@ -16,6 +19,9 @@ const schema = {
   ...salesSchema,
   ...pricingSchema,
   ...shippingSchema,
+  ...fraudSchema,
+  ...paymentSchema,
+  ...courierSchema,
 };
 
 let poolInstance: Pool | null = null;
