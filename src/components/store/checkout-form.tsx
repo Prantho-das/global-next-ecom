@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 
 import { formatBdt } from "@/lib/money";
+import { captureAbandonContactAction } from "@/modules/marketing/actions";
 import { applyCouponPreviewAction } from "@/modules/pricing/actions";
 import type { PriceBreakdown } from "@/modules/pricing/types";
 import {
@@ -128,6 +129,11 @@ export function CheckoutForm({ items, subtotal }: CheckoutFormProps) {
                 placeholder="01XXXXXXXXX"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+                onBlur={() => {
+                  if (phone.trim().length >= 11) {
+                    void captureAbandonContactAction({ contact: phone.trim() });
+                  }
+                }}
               />
             </div>
             <div className="col s12 m4" style={{ paddingTop: "24px" }}>

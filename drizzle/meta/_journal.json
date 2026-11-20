@@ -36,6 +36,13 @@
       "when": 1795169946219,
       "tag": "0004_lovely_lady_deathstrike",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795170197723,
+      "tag": "0005_spotty_gauntlet",
+      "breakpoints": true
     }
   ]
 }

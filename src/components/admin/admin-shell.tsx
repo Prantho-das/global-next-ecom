@@ -39,6 +39,11 @@ const NAV_ITEMS: readonly NavItem[] = [
     label: "Notifications",
     permission: "notification:view",
   },
+  {
+    href: "/admin/marketing",
+    label: "Marketing",
+    permission: "marketing:view",
+  },
   { href: "/admin/customers", label: "Customers", permission: "customer:view" },
   { href: "/admin/roles", label: "Roles & RBAC", permission: "role:view" },
   { href: "/admin/shipping", label: "Shipping", permission: "setting:view" },

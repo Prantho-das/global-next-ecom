@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { CartDrawer } from "@/components/store/cart-drawer";
+import { TrackingPixels } from "@/components/store/tracking-pixels";
 import { getSession } from "@/lib/auth";
 import { getActiveCartView } from "@/modules/sales/queries";
 
@@ -42,6 +43,7 @@ export default async function StoreLayout({
       <div style={{ flex: 1 }}>{children}</div>
 
       <CartDrawer items={cart.items} subtotal={cart.subtotal} />
+      <TrackingPixels />
 
       <footer className="page-footer blue-grey darken-4" style={{ marginTop: "48px" }}>
         <div className="container">

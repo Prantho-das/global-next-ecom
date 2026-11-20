@@ -6,6 +6,7 @@ import * as authSchema from "@/modules/auth/schema";
 import * as catalogSchema from "@/modules/catalog/schema";
 import * as courierSchema from "@/modules/courier/schema";
 import * as fraudSchema from "@/modules/fraud/schema";
+import * as marketingSchema from "@/modules/marketing/schema";
 import * as notifySchema from "@/modules/notify/schema";
 import * as paymentSchema from "@/modules/payment/schema";
 import * as pricingSchema from "@/modules/pricing/schema";
@@ -24,6 +25,7 @@ const schema = {
   ...paymentSchema,
   ...courierSchema,
   ...notifySchema,
+  ...marketingSchema,
 };
 
 let poolInstance: Pool | null = null;
