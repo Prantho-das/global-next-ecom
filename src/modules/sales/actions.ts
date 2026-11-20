@@ -16,7 +16,16 @@ import {
   normalizeBdPhone,
   verifyOtpCode,
 } from "@/modules/auth/otp-service";
-import { products, stockMovements, variants } from "@/modules/catalog/schema";
+import { products, productCategories, stockMovements, variants } from "@/modules/catalog/schema";
+import {
+  getActivePricingContext,
+  getCouponInputByCode,
+} from "@/modules/pricing/queries";
+import { couponRedemptions } from "@/modules/pricing/schema";
+import { calculatePriceBreakdown } from "@/modules/pricing/service";
+import type { PricingLineInput } from "@/modules/pricing/types";
+import { getAllShippingConfig } from "@/modules/shipping/queries";
+import { matchShippingRates } from "@/modules/shipping/service";
 import {
   cartItems,
   carts,
@@ -309,6 +318,22 @@ export const placeCodOrderAction = createAction({
         });
       }
 
+      const [pricingCtx, couponInput, shippingCfg] = await Promise.all([
+        getActivePricingContext(),
+        input.couponCode !== undefined && input.couponCode !== ""
+          ? getCouponInputByCode(input.couponCode, ctx.userId)
+          : Promise.resolve(null),
+        getAllShippingConfig(),
+      ]);
+
+      if (
+        input.couponCode !== undefined &&
+        input.couponCode !== "" &&
+        couponInput === null
+      ) {
+        throw new AppError("NOT_FOUND", "Coupon code not found");
+      }
+
       const result = await executeCodCheckout(
         {
           async findOrderByIdempotencyKey(key) {
@@ -352,16 +377,98 @@ export const placeCodOrderAction = createAction({
             });
           },
           async createOrderRecords(orderData) {
+            const variantDetails = await tx
+              .select({
+                id: variants.id,
+                productId: variants.productId,
+                weightG: variants.weightG,
+                brandId: products.brandId,
+                salePrice: products.salePrice,
+                basePrice: variants.price,
+              })
+              .from(variants)
+              .innerJoin(products, eq(variants.productId, products.id))
+              .where(inArray(variants.id, orderData.items.map((i) => i.variantId)));
+
+            const prodIds = variantDetails.map((v) => v.productId);
+            const catRows =
+              prodIds.length > 0
+                ? await tx
+                    .select({
+                      productId: productCategories.productId,
+                      categoryId: productCategories.categoryId,
+                    })
+                    .from(productCategories)
+                    .where(inArray(productCategories.productId, prodIds))
+                : [];
+            const catsByProd = new Map<string, string[]>();
+            for (const c of catRows) {
+              const arr = catsByProd.get(c.productId) ?? [];
+              arr.push(c.categoryId);
+              catsByProd.set(c.productId, arr);
+            }
+            const detailByVar = new Map(variantDetails.map((v) => [v.id, v]));
+
+            const pricingLines: PricingLineInput[] = orderData.items.map((i) => {
+              const d = detailByVar.get(i.variantId);
+              return {
+                variantId: i.variantId,
+                productId: d?.productId ?? i.variantId,
+                brandId: d?.brandId ?? null,
+                categoryIds: d !== undefined ? (catsByProd.get(d.productId) ?? []) : [],
+                sku: i.skuSnapshot,
+                name: i.nameSnapshot,
+                qty: i.qty,
+                basePrice: d?.basePrice ?? i.priceSnapshot,
+                salePrice: d?.salePrice ?? null,
+                weightG: d?.weightG ?? 500,
+              };
+            });
+
+            const totalWeightG = pricingLines.reduce(
+              (sum, l) => sum + l.weightG * l.qty,
+              0,
+            );
+            const rawSubtotal = pricingLines.reduce(
+              (sum, l) => sum + l.basePrice * l.qty,
+              0,
+            );
+            const matchedShipping = matchShippingRates({
+              address: {
+                division: input.division,
+                district: input.district,
+                thana: input.thana,
+              },
+              totalWeightG,
+              cartSubtotal: rawSubtotal,
+              zones: shippingCfg.zones,
+              areas: shippingCfg.areas,
+              rates: shippingCfg.rates,
+              globalFreeThreshold:
+                shippingCfg.settings?.freeShippingGlobalThreshold ?? null,
+            });
+            const selectedShippingFee =
+              matchedShipping.options[0]?.price ?? DEFAULT_FLAT_SHIPPING_POISHA;
+
+            const breakdown = calculatePriceBreakdown({
+              lines: pricingLines,
+              campaigns: pricingCtx.campaigns,
+              specialDays: pricingCtx.specialDays,
+              coupon: couponInput,
+              shippingFee: selectedShippingFee,
+            });
+
             await tx.insert(orders).values({
               id: orderData.orderId,
               number: orderData.orderNumber,
               customerId,
               status: "pending",
               paymentStatus: "pending",
-              subtotal: orderData.subtotal,
-              discountTotal: 0,
-              shippingFee: orderData.shippingFee,
-              total: orderData.total,
+              subtotal: breakdown.subtotal,
+              discountTotal:
+                breakdown.campaignDiscountTotal + breakdown.couponDiscount,
+              shippingFee: breakdown.shippingFee,
+              total: breakdown.total,
               shippingAddress: {
                 name: input.name,
                 phone: normalizedPhone,
@@ -375,16 +482,26 @@ export const placeCodOrderAction = createAction({
               idempotencyKey: orderData.idempotencyKey,
             });
             await tx.insert(orderItems).values(
-              orderData.items.map((item) => ({
+              orderData.items.map((item, idx) => ({
                 id: randomUUID(),
                 orderId: orderData.orderId,
                 variantId: item.variantId,
                 qty: item.qty,
-                priceSnapshot: item.priceSnapshot,
+                priceSnapshot:
+                  breakdown.lines[idx]?.unitPrice ?? item.priceSnapshot,
                 nameSnapshot: item.nameSnapshot,
                 skuSnapshot: item.skuSnapshot,
               })),
             );
+            if (breakdown.couponId !== null && breakdown.couponDiscount > 0) {
+              await tx.insert(couponRedemptions).values({
+                id: randomUUID(),
+                couponId: breakdown.couponId,
+                userId: ctx.userId,
+                orderId: orderData.orderId,
+                amount: breakdown.couponDiscount,
+              });
+            }
             await tx.insert(orderEvents).values({
               id: randomUUID(),
               orderId: orderData.orderId,
@@ -398,7 +515,7 @@ export const placeCodOrderAction = createAction({
               orderId: orderData.orderId,
               method: "cod",
               status: "pending",
-              amount: orderData.total,
+              amount: breakdown.total,
               currency: "BDT",
               idempotencyKey: `pay_${orderData.idempotencyKey}`,
             });

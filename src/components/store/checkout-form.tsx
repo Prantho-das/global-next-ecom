@@ -5,6 +5,8 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 
 import { formatBdt } from "@/lib/money";
+import { applyCouponPreviewAction } from "@/modules/pricing/actions";
+import type { PriceBreakdown } from "@/modules/pricing/types";
 import {
   placeCodOrderAction,
   requestCheckoutOtpAction,
@@ -40,6 +42,10 @@ export function CheckoutForm({ items, subtotal }: CheckoutFormProps) {
   const [thana, setThana] = useState("Dhanmondi");
   const [line, setLine] = useState("");
   const [note, setNote] = useState("");
+  const [couponCode, setCouponCode] = useState("");
+  const [couponPreview, setCouponPreview] = useState<PriceBreakdown | null>(
+    null,
+  );
   const [otpCode, setOtpCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [idempotencyKey] = useState(() => crypto.randomUUID());
@@ -61,6 +67,17 @@ export function CheckoutForm({ items, subtotal }: CheckoutFormProps) {
     setOtpSent(true);
   }
 
+  async function handleApplyCoupon() {
+    setError(null);
+    const res = await applyCouponPreviewAction({ code: couponCode });
+    if (!res.ok) {
+      setCouponPreview(null);
+      setError(res.message);
+      return;
+    }
+    setCouponPreview(res.data);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
@@ -73,6 +90,7 @@ export function CheckoutForm({ items, subtotal }: CheckoutFormProps) {
       thana,
       line,
       note: note.trim() || undefined,
+      couponCode: couponCode.trim() || undefined,
       otpCode,
       idempotencyKey,
     });
@@ -259,19 +277,52 @@ export function CheckoutForm({ items, subtotal }: CheckoutFormProps) {
               </li>
             ))}
           </ul>
+          <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+            <input
+              type="text"
+              aria-label="Coupon code"
+              placeholder="Coupon code"
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value)}
+            />
+            <button
+              type="button"
+              className="btn-small"
+              onClick={handleApplyCoupon}
+              disabled={couponCode.trim().length === 0}
+            >
+              Apply
+            </button>
+          </div>
           <p>
-            Subtotal <span className="right">{formatBdt(subtotal)}</span>
-          </p>
-          <p>
-            Shipping (Flat){" "}
+            Subtotal{" "}
             <span className="right">
-              {formatBdt(DEFAULT_FLAT_SHIPPING_POISHA)}
+              {formatBdt(couponPreview?.subtotal ?? subtotal)}
+            </span>
+          </p>
+          {couponPreview !== null && couponPreview.couponDiscount > 0 && (
+            <p className="green-text">
+              Coupon ({couponPreview.couponCode})
+              <span className="right">
+                -{formatBdt(couponPreview.couponDiscount)}
+              </span>
+            </p>
+          )}
+          <p>
+            Shipping{" "}
+            <span className="right">
+              {formatBdt(
+                couponPreview?.shippingFee ?? DEFAULT_FLAT_SHIPPING_POISHA,
+              )}
             </span>
           </p>
           <p style={{ fontWeight: 700, fontSize: "1.15rem" }}>
             Total{" "}
             <span className="right">
-              {formatBdt(subtotal + DEFAULT_FLAT_SHIPPING_POISHA)}
+              {formatBdt(
+                couponPreview?.total ??
+                  subtotal + DEFAULT_FLAT_SHIPPING_POISHA,
+              )}
             </span>
           </p>
         </div>

@@ -4,14 +4,18 @@ import { Pool } from "pg";
 import { getEnv } from "@/lib/env";
 import * as authSchema from "@/modules/auth/schema";
 import * as catalogSchema from "@/modules/catalog/schema";
+import * as pricingSchema from "@/modules/pricing/schema";
 import * as rbacSchema from "@/modules/rbac/schema";
 import * as salesSchema from "@/modules/sales/schema";
+import * as shippingSchema from "@/modules/shipping/schema";
 
 const schema = {
   ...rbacSchema,
   ...catalogSchema,
   ...authSchema,
   ...salesSchema,
+  ...pricingSchema,
+  ...shippingSchema,
 };
 
 let poolInstance: Pool | null = null;

@@ -31,6 +31,7 @@ export const checkoutSchema = z.object({
   thana: z.string().trim().min(2, "Thana is required").max(60),
   line: z.string().trim().min(5, "Street address is required").max(300),
   note: z.string().trim().max(300).optional(),
+  couponCode: z.string().trim().max(40).optional(),
   otpCode: z.string().trim().regex(/^\d{6}$/, "6-digit OTP is required"),
   idempotencyKey: z.string().min(8).max(120),
 });

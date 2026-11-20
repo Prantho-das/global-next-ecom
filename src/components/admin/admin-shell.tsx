@@ -33,6 +33,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   { href: "/admin/orders", label: "Orders", permission: "order:view" },
   { href: "/admin/customers", label: "Customers", permission: "customer:view" },
   { href: "/admin/roles", label: "Roles & RBAC", permission: "role:view" },
+  { href: "/admin/shipping", label: "Shipping", permission: "setting:view" },
   { href: "/admin/audit", label: "Audit Logs", permission: "audit:view" },
   { href: "/admin/settings", label: "Settings", permission: "setting:view" },
 ];
