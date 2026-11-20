@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { decryptSecret } from "@/lib/crypto";
 import { getDb } from "@/lib/db";
 import { AppError } from "@/lib/errors";
+import { emitNotification } from "@/modules/notify/bus";
 import { getPaymentAdapter } from "@/modules/payment/adapters";
 import type { PaymentGatewayCode } from "@/modules/payment/adapter";
 import { paymentProviders } from "@/modules/payment/schema";
@@ -96,6 +97,12 @@ export async function POST(
               .update(orders)
               .set({ paymentStatus: "paid", updatedAt: new Date() })
               .where(eq(orders.id, data.orderId));
+          });
+          await emitNotification("payment.received", {
+            vars: {
+              orderId: data.orderId,
+              amount: data.amountPoisha,
+            },
           });
         },
         async markPaymentFailed(data) {

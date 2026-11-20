@@ -9,6 +9,8 @@ import { createAction } from "@/lib/action";
 import { getDb } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import { stockMovements, variants } from "@/modules/catalog/schema";
+import { emitNotification } from "@/modules/notify/bus";
+import type { NotificationEventType } from "@/modules/notify/service";
 import {
   assertValidOrderTransition,
   ORDER_STATUSES,
@@ -103,6 +105,13 @@ export const transitionOrderAction = createAction({
             .delete(couponRedemptions)
             .where(eq(couponRedemptions.orderId, order.id));
         }
+      }
+
+      if (input.toStatus !== "pending" && input.toStatus !== "processing") {
+        const evType = `order.${input.toStatus}` as NotificationEventType;
+        await emitNotification(evType, {
+          vars: { orderNumber: order.number },
+        });
       }
 
       return { orderId: order.id, status: input.toStatus };

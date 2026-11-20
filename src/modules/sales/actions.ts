@@ -17,6 +17,7 @@ import {
   verifyOtpCode,
 } from "@/modules/auth/otp-service";
 import { products, productCategories, stockMovements, variants } from "@/modules/catalog/schema";
+import { emitNotification } from "@/modules/notify/bus";
 import {
   getActivePricingContext,
   getCouponInputByCode,
@@ -532,6 +533,15 @@ export const placeCodOrderAction = createAction({
           .set({ status: "converted", updatedAt: new Date() })
           .where(eq(carts.id, cartId));
         await tx.delete(cartItems).where(eq(cartItems.cartId, cartId));
+        await emitNotification("order.created", {
+          userId: ctx.userId,
+          phone: normalizedPhone,
+          vars: {
+            name: input.name,
+            orderNumber: result.orderNumber,
+            total: result.total,
+          },
+        });
       }
 
       return result;

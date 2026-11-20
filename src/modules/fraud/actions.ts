@@ -9,6 +9,7 @@ import { createAction } from "@/lib/action";
 import { getDb } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import { blacklist, fraudChecks, fraudRules } from "@/modules/fraud/schema";
+import { emitNotification } from "@/modules/notify/bus";
 import { orderEvents, orders } from "@/modules/sales/schema";
 
 const reviewFraudSchema = z.object({
@@ -78,6 +79,11 @@ export const reviewFraudCheckAction = createAction({
         actor: ctx.userId ?? "admin",
         note: input.note ?? `Fraud review: ${input.decision}`,
       });
+
+      await emitNotification(
+        input.decision === "approve" ? "order.confirmed" : "fraud.flagged",
+        { vars: { orderId: check.orderId, decision: input.decision } },
+      );
 
       return { orderId: check.orderId, status: nextOrderStatus };
     });
