@@ -11,6 +11,7 @@ import * as notifySchema from "@/modules/notify/schema";
 import * as paymentSchema from "@/modules/payment/schema";
 import * as pricingSchema from "@/modules/pricing/schema";
 import * as rbacSchema from "@/modules/rbac/schema";
+import * as reportSchema from "@/modules/report/schema";
 import * as salesSchema from "@/modules/sales/schema";
 import * as shippingSchema from "@/modules/shipping/schema";
 
@@ -26,6 +27,7 @@ const schema = {
   ...courierSchema,
   ...notifySchema,
   ...marketingSchema,
+  ...reportSchema,
 };
 
 let poolInstance: Pool | null = null;

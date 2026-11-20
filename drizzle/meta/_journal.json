@@ -43,6 +43,13 @@
       "when": 1795170197723,
       "tag": "0005_spotty_gauntlet",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795170415045,
+      "tag": "0006_wild_red_wolf",
+      "breakpoints": true
     }
   ]
 }
