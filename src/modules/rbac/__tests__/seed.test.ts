@@ -14,8 +14,8 @@ function createInMemoryRbacDb() {
     mappingsTable,
     db: {
       insert: (table: unknown) => ({
-        values: (rows: Array<Record<string, unknown>>) => ({
-          onConflictDoNothing: async () => {
+        ignore: () => ({
+          values: async (rows: Array<Record<string, unknown>>) => {
             for (const row of rows) {
               if (typeof row["key"] === "string") {
                 if (!permsTable.has(row["key"])) {

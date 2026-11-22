@@ -1,13 +1,14 @@
 import {
   boolean,
   index,
-  integer,
-  jsonb,
-  pgTable,
+  int,
+  json,
+  mysqlTable,
   text,
   timestamp,
   uniqueIndex,
-} from "drizzle-orm/pg-core";
+  varchar,
+} from "drizzle-orm/mysql-core";
 
 import { products, variants } from "@/modules/catalog/schema";
 import { users } from "@/modules/rbac/schema";
@@ -19,154 +20,129 @@ export interface SegmentRule {
   value: string | number;
 }
 
-export const segments = pgTable("segments", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  rules: jsonb("rules").$type<SegmentRule[]>().notNull().default([]),
-  createdAt: timestamp("created_at", { withTimezone: true })
+export const segments = mysqlTable("segments", {
+  id: varchar("id", { length: 191 }).primaryKey(),
+  name: varchar("name", { length: 191 }).notNull(),
+  rules: json("rules")
+    .$type<SegmentRule[]>()
     .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+    .$defaultFn(() => []),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const campaignsMarketing = pgTable("campaigns_marketing", {
-  id: text("id").primaryKey(),
-  channel: text("channel").notNull(),
-  templateId: text("template_id"),
-  segmentId: text("segment_id").references(() => segments.id, {
-    onDelete: "set null",
-  }),
-  scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
-  status: text("status").notNull().default("draft"),
-  stats: jsonb("stats").$type<Record<string, number>>().default({}),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+export const campaignsMarketing = mysqlTable("campaigns_marketing", {
+  id: varchar("id", { length: 191 }).primaryKey(),
+  channel: varchar("channel", { length: 64 }).notNull(),
+  templateId: varchar("template_id", { length: 191 }),
+  segmentId: varchar("segment_id", { length: 191 }).references(
+    () => segments.id,
+    { onDelete: "set null" },
+  ),
+  scheduledAt: timestamp("scheduled_at"),
+  status: varchar("status", { length: 64 }).notNull().default("draft"),
+  stats: json("stats")
+    .$type<Record<string, number>>()
+    .$defaultFn(() => ({})),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const referrals = pgTable(
+export const referrals = mysqlTable(
   "referrals",
   {
-    id: text("id").primaryKey(),
-    referrerUserId: text("referrer_user_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    referrerUserId: varchar("referrer_user_id", { length: 191 })
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    referredUserId: text("referred_user_id").references(() => users.id, {
-      onDelete: "set null",
-    }),
-    code: text("code").notNull(),
-    status: text("status").notNull().default("active"),
-    rewardAmount: integer("reward_amount").notNull().default(0),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    referredUserId: varchar("referred_user_id", { length: 191 }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    code: varchar("code", { length: 191 }).notNull(),
+    status: varchar("status", { length: 64 }).notNull().default("active"),
+    rewardAmount: int("reward_amount").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [uniqueIndex("referrals_code_idx").on(table.code)],
 );
 
-export const trackingEvents = pgTable(
+export const trackingEvents = mysqlTable(
   "tracking_events",
   {
-    id: text("id").primaryKey(),
-    orderId: text("order_id").references(() => orders.id, {
+    id: varchar("id", { length: 191 }).primaryKey(),
+    orderId: varchar("order_id", { length: 191 }).references(() => orders.id, {
       onDelete: "cascade",
     }),
-    platform: text("platform").notNull(),
-    eventId: text("event_id").notNull(),
-    sentAt: timestamp("sent_at", { withTimezone: true }),
-    status: text("status").notNull().default("sent"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    platform: varchar("platform", { length: 64 }).notNull(),
+    eventId: varchar("event_id", { length: 191 }).notNull(),
+    sentAt: timestamp("sent_at"),
+    status: varchar("status", { length: 64 }).notNull().default("sent"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [uniqueIndex("tracking_events_event_id_idx").on(table.eventId)],
 );
 
-export const productFeeds = pgTable("product_feeds", {
-  id: text("id").primaryKey(),
-  channel: text("channel").notNull(),
+export const productFeeds = mysqlTable("product_feeds", {
+  id: varchar("id", { length: 191 }).primaryKey(),
+  channel: varchar("channel", { length: 64 }).notNull(),
   url: text("url").notNull(),
-  status: text("status").notNull().default("active"),
-  lastGeneratedAt: timestamp("last_generated_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  status: varchar("status", { length: 64 }).notNull().default("active"),
+  lastGeneratedAt: timestamp("last_generated_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const abandonCartLogs = pgTable(
+export const abandonCartLogs = mysqlTable(
   "abandon_cart_logs",
   {
-    id: text("id").primaryKey(),
-    cartId: text("cart_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    cartId: varchar("cart_id", { length: 191 })
       .notNull()
       .references(() => carts.id, { onDelete: "cascade" }),
-    stage: text("stage").notNull(),
-    couponCode: text("coupon_code"),
-    contact: text("contact").notNull(),
+    stage: varchar("stage", { length: 64 }).notNull(),
+    couponCode: varchar("coupon_code", { length: 191 }),
+    contact: varchar("contact", { length: 191 }).notNull(),
     optedOut: boolean("opted_out").notNull().default(false),
-    sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
-    recoveredAt: timestamp("recovered_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    sentAt: timestamp("sent_at").notNull().defaultNow(),
+    recoveredAt: timestamp("recovered_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [index("abandon_cart_logs_cart_idx").on(table.cartId)],
 );
 
-export const wishlists = pgTable(
+export const wishlists = mysqlTable(
   "wishlists",
   {
-    id: text("id").primaryKey(),
-    userId: text("user_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    userId: varchar("user_id", { length: 191 })
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    productId: text("product_id")
+    productId: varchar("product_id", { length: 191 })
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("wishlists_pair_idx").on(table.userId, table.productId),
   ],
 );
 
-export const backInStockAlerts = pgTable(
+export const backInStockAlerts = mysqlTable(
   "back_in_stock_alerts",
   {
-    id: text("id").primaryKey(),
-    variantId: text("variant_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    variantId: varchar("variant_id", { length: 191 })
       .notNull()
       .references(() => variants.id, { onDelete: "cascade" }),
-    contact: text("contact").notNull(),
-    notifiedAt: timestamp("notified_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    contact: varchar("contact", { length: 191 }).notNull(),
+    notifiedAt: timestamp("notified_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [index("back_in_stock_variant_idx").on(table.variantId)],
 );

@@ -8,7 +8,8 @@ import { z } from "zod";
 import { createAction } from "@/lib/action";
 import { getDb } from "@/lib/db";
 import { AppError } from "@/lib/errors";
-import { stockMovements, variants } from "@/modules/catalog/schema";
+import { normalizeBdPhone } from "@/modules/auth/otp-service";
+import { products, stockMovements, variants } from "@/modules/catalog/schema";
 import { emitNotification } from "@/modules/notify/bus";
 import type { NotificationEventType } from "@/modules/notify/service";
 import {
@@ -18,7 +19,17 @@ import {
 } from "@/modules/order/service";
 import type { OrderStatus } from "@/modules/order/service";
 import { couponRedemptions } from "@/modules/pricing/schema";
-import { orderEvents, orderItems, orders } from "@/modules/sales/schema";
+import {
+  customers,
+  orderEvents,
+  orderItems,
+  orders,
+  payments,
+} from "@/modules/sales/schema";
+import {
+  computeFlatUnitPrice,
+  generateOrderNumber,
+} from "@/modules/sales/service";
 
 const transitionOrderSchema = z.object({
   orderId: z.string().min(1),
@@ -154,5 +165,189 @@ export const bulkTransitionOrdersAction = createAction({
       }
     });
     return { updated };
+  },
+});
+
+
+const createAdminOrderSchema = z.object({
+  customerName: z.string().trim().min(2).max(120),
+  customerPhone: z.string().trim().min(10).max(20),
+  division: z.string().trim().min(1).max(80).default("Dhaka"),
+  district: z.string().trim().min(1).max(80).default("Dhaka"),
+  thana: z.string().trim().min(1).max(80).default("Dhaka"),
+  line: z.string().trim().min(3).max(300),
+  items: z
+    .array(
+      z.object({
+        variantId: z.string().min(1),
+        qty: z.number().int().min(1).max(999),
+      }),
+    )
+    .min(1),
+  shippingFee: z.number().int().min(0).default(0),
+  discountTotal: z.number().int().min(0).default(0),
+  paymentMethod: z.enum(["cod", "cash", "bkash", "nagad", "sslcommerz"]).default("cod"),
+  paymentStatus: z.enum(["pending", "paid"]).default("pending"),
+  status: z.enum(["pending", "confirmed", "processing"]).default("confirmed"),
+  note: z.string().trim().max(300).optional(),
+});
+
+export const createAdminOrderAction = createAction({
+  permission: "order:create",
+  schema: createAdminOrderSchema,
+  revalidateTags: ["orders", "products"],
+  audit: {
+    action: "create_manual",
+    entity: "order",
+    getEntityId: (out: { orderId: string }) => out.orderId,
+  },
+  handler: async (input, ctx) => {
+    const db = getDb();
+    const phone = normalizeBdPhone(input.customerPhone);
+    const orderId = randomUUID();
+    const orderNumber = generateOrderNumber();
+    const idempotencyKey = `admin-${orderId}`;
+
+    return db.transaction(async (tx) => {
+      const existingCustomers = await tx
+        .select({ id: customers.id })
+        .from(customers)
+        .where(eq(customers.phone, phone))
+        .limit(1);
+
+      let customerId = existingCustomers[0]?.id;
+      if (customerId === undefined) {
+        customerId = randomUUID();
+        await tx.insert(customers).values({
+          id: customerId,
+          phone,
+          name: input.customerName,
+          isGuest: true,
+        });
+      }
+
+      const variantIds = input.items.map((i) => i.variantId);
+      const lockedVars = await tx
+        .select({
+          id: variants.id,
+          sku: variants.sku,
+          price: variants.price,
+          stock: variants.stock,
+          productName: products.name,
+          salePrice: products.salePrice,
+        })
+        .from(variants)
+        .innerJoin(products, eq(variants.productId, products.id))
+        .where(inArray(variants.id, variantIds))
+        .for("update");
+
+      const varMap = new Map(lockedVars.map((v) => [v.id, v]));
+      let subtotal = 0;
+      const resolvedItems: Array<{
+        variantId: string;
+        qty: number;
+        priceSnapshot: number;
+        nameSnapshot: string;
+        skuSnapshot: string;
+        nextStock: number;
+      }> = [];
+
+      for (const reqItem of input.items) {
+        const v = varMap.get(reqItem.variantId);
+        if (v === undefined) {
+          throw new AppError("NOT_FOUND", "Selected variant not found");
+        }
+        if (v.stock < reqItem.qty) {
+          throw new AppError(
+            "CONFLICT",
+            `Insufficient stock for ${v.productName} (${v.sku})`,
+          );
+        }
+        const unitPrice = computeFlatUnitPrice(v.price, v.salePrice);
+        subtotal += unitPrice * reqItem.qty;
+        resolvedItems.push({
+          variantId: v.id,
+          qty: reqItem.qty,
+          priceSnapshot: unitPrice,
+          nameSnapshot: v.productName,
+          skuSnapshot: v.sku,
+          nextStock: v.stock - reqItem.qty,
+        });
+      }
+
+      const discountTotal = input.discountTotal ?? 0;
+      const shippingFee = input.shippingFee ?? 0;
+      const orderStatus = input.status ?? "confirmed";
+      const paymentStatus = input.paymentStatus ?? "pending";
+      const paymentMethod = input.paymentMethod ?? "cod";
+      const total = Math.max(0, subtotal - discountTotal + shippingFee);
+
+      await tx.insert(orders).values({
+        id: orderId,
+        number: orderNumber,
+        customerId,
+        status: orderStatus,
+        paymentStatus,
+        subtotal,
+        discountTotal,
+        shippingFee,
+        total,
+        shippingAddress: {
+          name: input.customerName,
+          phone,
+          division: input.division ?? "Dhaka",
+          district: input.district ?? "Dhaka",
+          thana: input.thana ?? "Dhaka",
+          line: input.line,
+        },
+        note: input.note ?? null,
+        idempotencyKey,
+      });
+
+      for (const item of resolvedItems) {
+        await tx
+          .update(variants)
+          .set({ stock: item.nextStock, updatedAt: new Date() })
+          .where(eq(variants.id, item.variantId));
+        await tx.insert(stockMovements).values({
+          id: randomUUID(),
+          variantId: item.variantId,
+          delta: -item.qty,
+          reason: `Manual order ${orderNumber}`,
+          refType: "order",
+          refId: orderId,
+        });
+        await tx.insert(orderItems).values({
+          id: randomUUID(),
+          orderId,
+          variantId: item.variantId,
+          qty: item.qty,
+          priceSnapshot: item.priceSnapshot,
+          nameSnapshot: item.nameSnapshot,
+          skuSnapshot: item.skuSnapshot,
+        });
+      }
+
+      await tx.insert(orderEvents).values({
+        id: randomUUID(),
+        orderId,
+        fromStatus: null,
+        toStatus: orderStatus,
+        actor: ctx.userId ?? "admin",
+        note: "Manual order created from admin",
+      });
+
+      await tx.insert(payments).values({
+        id: randomUUID(),
+        orderId,
+        method: paymentMethod,
+        status: paymentStatus,
+        amount: total,
+        idempotencyKey: `pay-${orderId}`,
+        paidAt: paymentStatus === "paid" ? new Date() : null,
+      });
+
+      return { orderId, orderNumber, total };
+    });
   },
 });

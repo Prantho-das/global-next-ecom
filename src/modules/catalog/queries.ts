@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, isNull, lt, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, like, lt, or, sql } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 
 import { getDb } from "@/lib/db";
@@ -6,6 +6,7 @@ import {
   brands,
   categories,
   products,
+  purchaseOrders,
   stockMovements,
   variants,
 } from "@/modules/catalog/schema";
@@ -31,6 +32,7 @@ export const getBrandsCached = unstable_cache(
         id: brands.id,
         name: brands.name,
         slug: brands.slug,
+        status: brands.status,
         logoUrl: brands.logoUrl,
         seo: brands.seo,
       })
@@ -51,6 +53,7 @@ export const getCategoriesTreeCached = unstable_cache(
         parentId: categories.parentId,
         name: categories.name,
         slug: categories.slug,
+        status: categories.status,
         path: categories.path,
         depth: categories.depth,
         position: categories.position,
@@ -79,7 +82,7 @@ export async function listProductsCursor(opts: {
   }
   if (opts.search !== undefined && opts.search.trim() !== "") {
     const term = `%${opts.search.trim()}%`;
-    const searchCond = or(ilike(products.name, term), ilike(products.slug, term));
+    const searchCond = or(like(products.name, term), like(products.slug, term));
     if (searchCond !== undefined) {
       conditions.push(searchCond);
     }
@@ -97,8 +100,8 @@ export async function listProductsCursor(opts: {
       basePrice: products.basePrice,
       brandName: brands.name,
       createdAt: products.createdAt,
-      variantCount: sql<number>`count(${variants.id})::int`,
-      totalStock: sql<number>`coalesce(sum(${variants.stock}), 0)::int`,
+      variantCount: sql<number>`CAST(COUNT(${variants.id}) AS SIGNED)`,
+      totalStock: sql<number>`CAST(COALESCE(SUM(${variants.stock}), 0) AS SIGNED)`,
     })
     .from(products)
     .leftJoin(brands, eq(products.brandId, brands.id))
@@ -206,4 +209,64 @@ export async function listStockMovementsCursor(opts: {
     items,
     nextCursor: hasMore && last !== undefined ? last.createdAt.toISOString() : null,
   };
+}
+
+
+export interface InventoryVariantRow {
+  variantId: string;
+  productId: string;
+  productName: string;
+  sku: string;
+  optionValues: Record<string, string>;
+  stock: number;
+  price: number;
+  costPrice: number | null;
+}
+
+export async function listInventoryVariants(): Promise<InventoryVariantRow[]> {
+  const db = getDb();
+  return db
+    .select({
+      variantId: variants.id,
+      productId: products.id,
+      productName: products.name,
+      sku: variants.sku,
+      optionValues: variants.optionValues,
+      stock: variants.stock,
+      price: variants.price,
+      costPrice: variants.costPrice,
+    })
+    .from(variants)
+    .innerJoin(products, eq(variants.productId, products.id))
+    .where(and(isNull(variants.deletedAt), isNull(products.deletedAt)))
+    .orderBy(asc(variants.stock), asc(products.name))
+    .limit(200);
+}
+
+
+export interface PurchaseOrderRow {
+  id: string;
+  poNumber: string;
+  supplierName: string;
+  supplierPhone: string | null;
+  status: string;
+  totalCost: number;
+  receivedAt: Date;
+}
+
+export async function listPurchaseOrders(): Promise<PurchaseOrderRow[]> {
+  const db = getDb();
+  return db
+    .select({
+      id: purchaseOrders.id,
+      poNumber: purchaseOrders.poNumber,
+      supplierName: purchaseOrders.supplierName,
+      supplierPhone: purchaseOrders.supplierPhone,
+      status: purchaseOrders.status,
+      totalCost: purchaseOrders.totalCost,
+      receivedAt: purchaseOrders.receivedAt,
+    })
+    .from(purchaseOrders)
+    .orderBy(desc(purchaseOrders.receivedAt))
+    .limit(50);
 }

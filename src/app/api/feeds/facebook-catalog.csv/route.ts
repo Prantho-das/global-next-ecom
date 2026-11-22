@@ -18,7 +18,7 @@ export async function GET(): Promise<Response> {
       slug: products.slug,
       description: products.description,
       basePrice: products.basePrice,
-      stock: sql<number>`coalesce(sum(${variants.stock}), 0)::int`,
+      stock: sql<number>`CAST(COALESCE(SUM(${variants.stock}), 0) AS SIGNED)`,
       imageUrl: sql<string | null>`(
         SELECT ${productImages.url}
         FROM ${productImages}

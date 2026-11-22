@@ -38,6 +38,7 @@ export interface CategoryNode {
   parentId: string | null;
   name: string;
   slug: string;
+  status: string;
   path: string;
   depth: number;
   position: number;
@@ -48,6 +49,7 @@ export interface BrandItem {
   id: string;
   name: string;
   slug: string;
+  status: string;
   logoUrl: string | null;
   seo: SeoMeta | null;
 }

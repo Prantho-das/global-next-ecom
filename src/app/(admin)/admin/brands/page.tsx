@@ -20,10 +20,10 @@ export default async function AdminBrandsPage() {
   const brands = await getBrandsCached();
 
   return (
-    <section aria-labelledby="brands-heading">
-      <h1 id="brands-heading" style={{ fontSize: "1.75rem", marginTop: 0 }}>
+    <section aria-labelledby="brands-heading" className="space-y-4">
+      <h2 id="brands-heading" className="sr-only">
         Brands
-      </h1>
+      </h2>
       <BrandsManager initialBrands={brands} />
     </section>
   );

@@ -57,18 +57,45 @@ export async function fetchUserPermissionSnapshot(
   };
 }
 
+function shouldSkipRedis(): boolean {
+  const url = process.env.UPSTASH_REDIS_REST_URL ?? "";
+  return url.includes("example.upstash.io");
+}
+
+const memPermCache = new Map<
+  string,
+  { snapshot: UserPermissionSnapshot; expiresAt: number }
+>();
+
 export async function getUserPermissions(
   userId: string,
 ): Promise<UserPermissionSnapshot> {
-  const redis = getRedis();
   const cacheKey = getUserPermCacheKey(userId);
-  const cached = await redis.get<UserPermissionSnapshot>(cacheKey);
-  if (cached !== null) {
-    return cached;
+  if (shouldSkipRedis()) {
+    const now = Date.now();
+    const hit = memPermCache.get(cacheKey);
+    if (hit !== undefined && hit.expiresAt > now) {
+      return hit.snapshot;
+    }
+    const snapshot = await fetchUserPermissionSnapshot(userId);
+    memPermCache.set(cacheKey, {
+      snapshot,
+      expiresAt: now + 60_000,
+    });
+    return snapshot;
   }
-  const snapshot = await fetchUserPermissionSnapshot(userId);
-  await redis.set(cacheKey, snapshot, { ex: PERMISSION_CACHE_TTL_SEC });
-  return snapshot;
+  try {
+    const redis = getRedis();
+    const cached = await redis.get<UserPermissionSnapshot>(cacheKey);
+    if (cached !== null) {
+      return cached;
+    }
+    const snapshot = await fetchUserPermissionSnapshot(userId);
+    await redis.set(cacheKey, snapshot, { ex: PERMISSION_CACHE_TTL_SEC });
+    return snapshot;
+  } catch {
+    return fetchUserPermissionSnapshot(userId);
+  }
 }
 
 export function hasPermissionInSnapshot(
@@ -108,7 +135,16 @@ export async function requirePermission(
 export async function invalidateUserPermissionCache(
   userId: string,
 ): Promise<void> {
-  await getRedis().del(getUserPermCacheKey(userId));
+  const cacheKey = getUserPermCacheKey(userId);
+  memPermCache.delete(cacheKey);
+  if (shouldSkipRedis()) {
+    return;
+  }
+  try {
+    await getRedis().del(cacheKey);
+  } catch {
+    return;
+  }
 }
 
 export async function invalidateRoleUsersPermissionCache(
@@ -122,8 +158,18 @@ export async function invalidateRoleUsersPermissionCache(
   if (rows.length === 0) {
     return;
   }
-  const redis = getRedis();
-  await Promise.all(
-    rows.map((row) => redis.del(getUserPermCacheKey(row.userId))),
-  );
+  for (const row of rows) {
+    memPermCache.delete(getUserPermCacheKey(row.userId));
+  }
+  if (shouldSkipRedis()) {
+    return;
+  }
+  try {
+    const redis = getRedis();
+    await Promise.all(
+      rows.map((row) => redis.del(getUserPermCacheKey(row.userId))),
+    );
+  } catch {
+    return;
+  }
 }

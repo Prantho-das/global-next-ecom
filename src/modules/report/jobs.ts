@@ -91,8 +91,7 @@ export async function runReportAggregateJob(mode: "hourly" | "nightly") {
           discountTotal: b.discountTotal,
           shippingTotal: b.shippingTotal,
         })
-        .onConflictDoUpdate({
-          target: aggSalesDaily.day,
+        .onDuplicateKeyUpdate({
           set: {
             ordersCount: b.ordersCount,
             revenue: b.revenue,
@@ -109,7 +108,7 @@ export async function runReportAggregateJob(mode: "hourly" | "nightly") {
 export async function runCampaignLifecycleJob(now: Date = new Date()) {
   return runObservableCronJob("campaign.activate_expire", async () => {
     const db = getDb();
-    const activated = await db
+    const [activated] = await db
       .update(campaigns)
       .set({ status: "active", updatedAt: now })
       .where(
@@ -118,16 +117,14 @@ export async function runCampaignLifecycleJob(now: Date = new Date()) {
           lte(campaigns.startsAt, now),
           gt(campaigns.endsAt, now),
         ),
-      )
-      .returning({ id: campaigns.id });
+      );
 
-    const expired = await db
+    const [expired] = await db
       .update(campaigns)
       .set({ status: "expired", updatedAt: now })
-      .where(and(eq(campaigns.status, "active"), lte(campaigns.endsAt, now)))
-      .returning({ id: campaigns.id });
+      .where(and(eq(campaigns.status, "active"), lte(campaigns.endsAt, now)));
 
-    return { activated: activated.length, expired: expired.length };
+    return { activated: activated.affectedRows, expired: expired.affectedRows };
   });
 }
 
@@ -159,7 +156,7 @@ export async function runCodReconcileJob() {
     const db = getDb();
     const rows = await db
       .select({
-        count: sql<number>`count(*)::int`,
+        count: sql<number>`CAST(COUNT(*) AS SIGNED)`,
       })
       .from(shipments)
       .where(
@@ -203,12 +200,11 @@ export async function runSitemapRevalidateJob() {
 export async function runCleanupJob(now: Date = new Date()) {
   return runObservableCronJob("cleanup", async () => {
     const db = getDb();
-    const deletedOtps = await db
+    const [deletedOtps] = await db
       .delete(otpCodes)
-      .where(lte(otpCodes.expiresAt, now))
-      .returning({ id: otpCodes.id });
+      .where(lte(otpCodes.expiresAt, now));
     const expiredCartCutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const expiredCarts = await db
+    const [expiredCarts] = await db
       .update(carts)
       .set({ status: "expired", updatedAt: now })
       .where(
@@ -216,12 +212,11 @@ export async function runCleanupJob(now: Date = new Date()) {
           eq(carts.status, "active"),
           lte(carts.lastActivityAt, expiredCartCutoff),
         ),
-      )
-      .returning({ id: carts.id });
+      );
 
     return {
-      purgedOtps: deletedOtps.length,
-      expiredCarts: expiredCarts.length,
+      purgedOtps: deletedOtps.affectedRows,
+      expiredCarts: expiredCarts.affectedRows,
     };
   });
 }

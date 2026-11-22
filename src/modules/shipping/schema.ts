@@ -1,79 +1,63 @@
 import {
   boolean,
   index,
-  integer,
-  pgTable,
-  text,
+  int,
+  mysqlTable,
   timestamp,
-} from "drizzle-orm/pg-core";
+  varchar,
+} from "drizzle-orm/mysql-core";
 
-export const shippingZones = pgTable("shipping_zones", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  type: text("type").notNull().default("flat"),
+export const shippingZones = mysqlTable("shipping_zones", {
+  id: varchar("id", { length: 191 }).primaryKey(),
+  name: varchar("name", { length: 191 }).notNull(),
+  type: varchar("type", { length: 64 }).notNull().default("flat"),
   isDefault: boolean("is_default").notNull().default(false),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const shippingZoneAreas = pgTable(
+export const shippingZoneAreas = mysqlTable(
   "shipping_zone_areas",
   {
-    id: text("id").primaryKey(),
-    zoneId: text("zone_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    zoneId: varchar("zone_id", { length: 191 })
       .notNull()
       .references(() => shippingZones.id, { onDelete: "cascade" }),
-    division: text("division").notNull(),
-    district: text("district").notNull(),
-    thana: text("thana"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    division: varchar("division", { length: 191 }).notNull(),
+    district: varchar("district", { length: 191 }).notNull(),
+    thana: varchar("thana", { length: 191 }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [index("shipping_zone_areas_zone_idx").on(table.zoneId)],
 );
 
-export const shippingRates = pgTable(
+export const shippingRates = mysqlTable(
   "shipping_rates",
   {
-    id: text("id").primaryKey(),
-    zoneId: text("zone_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    zoneId: varchar("zone_id", { length: 191 })
       .notNull()
       .references(() => shippingZones.id, { onDelete: "cascade" }),
-    name: text("name").notNull(),
-    minWeightG: integer("min_weight_g").notNull().default(0),
-    maxWeightG: integer("max_weight_g"),
-    minCartAmount: integer("min_cart_amount").notNull().default(0),
-    maxCartAmount: integer("max_cart_amount"),
-    price: integer("price").notNull(),
-    estimatedDaysMin: integer("estimated_days_min").notNull().default(1),
-    estimatedDaysMax: integer("estimated_days_max").notNull().default(3),
-    isFreeAbove: integer("is_free_above"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    name: varchar("name", { length: 191 }).notNull(),
+    minWeightG: int("min_weight_g").notNull().default(0),
+    maxWeightG: int("max_weight_g"),
+    minCartAmount: int("min_cart_amount").notNull().default(0),
+    maxCartAmount: int("max_cart_amount"),
+    price: int("price").notNull(),
+    estimatedDaysMin: int("estimated_days_min").notNull().default(1),
+    estimatedDaysMax: int("estimated_days_max").notNull().default(3),
+    isFreeAbove: int("is_free_above"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [index("shipping_rates_zone_idx").on(table.zoneId)],
 );
 
-export const shippingSettings = pgTable("shipping_settings", {
-  id: text("id").primaryKey(),
-  freeShippingGlobalThreshold: integer("free_shipping_global_threshold"),
-  defaultWeightG: integer("default_weight_g").notNull().default(500),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+export const shippingSettings = mysqlTable("shipping_settings", {
+  id: varchar("id", { length: 191 }).primaryKey(),
+  freeShippingGlobalThreshold: int("free_shipping_global_threshold"),
+  defaultWeightG: int("default_weight_g").notNull().default(500),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

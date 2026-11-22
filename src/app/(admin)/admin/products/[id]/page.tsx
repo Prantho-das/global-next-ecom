@@ -38,13 +38,13 @@ export default async function EditProductPage({
   }
 
   return (
-    <section aria-labelledby="edit-product-heading">
-      <h1
+    <section aria-labelledby="edit-product-heading" className="space-y-4">
+      <h2
         id="edit-product-heading"
-        style={{ fontSize: "1.75rem", marginTop: 0 }}
+        className="text-lg font-bold text-slate-900 m-0"
       >
-        Edit Product
-      </h1>
+        Edit Product: {product.name}
+      </h2>
       <ProductForm
         brands={brands}
         categories={categories}
@@ -60,6 +60,12 @@ export default async function EditProductPage({
           salePrice: product.salePrice,
           compareAtPrice: product.compareAtPrice,
           hasVariants: product.hasVariants,
+          images: product.images.map((img) => ({
+            id: img.id,
+            url: img.url,
+            alt: img.alt,
+            position: img.position,
+          })),
           options: product.options.map((o) => ({
             name: o.name,
             values: o.values,

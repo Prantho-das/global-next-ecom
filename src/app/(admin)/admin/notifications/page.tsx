@@ -29,10 +29,10 @@ export default async function AdminNotificationsPage() {
   ]);
 
   return (
-    <section aria-labelledby="notify-heading">
-      <h1 id="notify-heading" style={{ fontSize: "1.75rem", marginTop: 0 }}>
+    <section aria-labelledby="notify-heading" className="space-y-4">
+      <h2 id="notify-heading" className="sr-only">
         Notifications &amp; Templates
-      </h1>
+      </h2>
       <NotificationsManager templates={templateRows} logs={logRows} />
     </section>
   );

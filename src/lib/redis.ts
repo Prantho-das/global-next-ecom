@@ -6,6 +6,11 @@ import { AppError } from "@/lib/errors";
 
 let redisInstance: Redis | null = null;
 
+export function isRedisConfigured(): boolean {
+  const url = getEnv().UPSTASH_REDIS_REST_URL;
+  return url.trim() !== "" && !url.includes("example.upstash.io");
+}
+
 export function getRedis(): Redis {
   if (redisInstance === null) {
     const env = getEnv();
@@ -27,6 +32,9 @@ export async function enforceRateLimit(
   identifier: string,
   config: RateLimitConfig,
 ): Promise<void> {
+  if (!isRedisConfigured()) {
+    return;
+  }
   const ratelimit = new Ratelimit({
     redis: getRedis(),
     limiter: Ratelimit.slidingWindow(config.limit, `${config.windowSec} s`),

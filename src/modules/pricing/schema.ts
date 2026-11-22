@@ -1,162 +1,142 @@
 import {
   boolean,
   index,
-  integer,
-  pgTable,
+  int,
+  mysqlTable,
   text,
   timestamp,
   uniqueIndex,
-} from "drizzle-orm/pg-core";
+  varchar,
+} from "drizzle-orm/mysql-core";
 
 import { users } from "@/modules/rbac/schema";
 import { orders } from "@/modules/sales/schema";
 
-export const campaigns = pgTable(
+export const campaigns = mysqlTable(
   "campaigns",
   {
-    id: text("id").primaryKey(),
-    name: text("name").notNull(),
-    type: text("type").notNull(),
-    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
-    endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
-    priority: integer("priority").notNull().default(0),
-    status: text("status").notNull().default("draft"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    id: varchar("id", { length: 191 }).primaryKey(),
+    name: varchar("name", { length: 191 }).notNull(),
+    type: varchar("type", { length: 64 }).notNull(),
+    startsAt: timestamp("starts_at").notNull(),
+    endsAt: timestamp("ends_at").notNull(),
+    priority: int("priority").notNull().default(0),
+    status: varchar("status", { length: 64 }).notNull().default("draft"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
-  (table) => [index("campaigns_status_window_idx").on(table.status, table.startsAt, table.endsAt)],
+  (table) => [
+    index("campaigns_status_window_idx").on(
+      table.status,
+      table.startsAt,
+      table.endsAt,
+    ),
+  ],
 );
 
-export const campaignTargets = pgTable(
+export const campaignTargets = mysqlTable(
   "campaign_targets",
   {
-    id: text("id").primaryKey(),
-    campaignId: text("campaign_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    campaignId: varchar("campaign_id", { length: 191 })
       .notNull()
       .references(() => campaigns.id, { onDelete: "cascade" }),
-    scope: text("scope").notNull(),
-    targetId: text("target_id"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    scope: varchar("scope", { length: 64 }).notNull(),
+    targetId: varchar("target_id", { length: 191 }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [index("campaign_targets_campaign_idx").on(table.campaignId)],
 );
 
-export const campaignRules = pgTable(
+export const campaignRules = mysqlTable(
   "campaign_rules",
   {
-    id: text("id").primaryKey(),
-    campaignId: text("campaign_id").references(() => campaigns.id, {
-      onDelete: "cascade",
-    }),
-    discountType: text("discount_type").notNull(),
-    value: integer("value").notNull(),
-    maxDiscount: integer("max_discount"),
-    stockCap: integer("stock_cap"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    id: varchar("id", { length: 191 }).primaryKey(),
+    campaignId: varchar("campaign_id", { length: 191 }).references(
+      () => campaigns.id,
+      { onDelete: "cascade" },
+    ),
+    discountType: varchar("discount_type", { length: 64 }).notNull(),
+    value: int("value").notNull(),
+    maxDiscount: int("max_discount"),
+    stockCap: int("stock_cap"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [index("campaign_rules_campaign_idx").on(table.campaignId)],
 );
 
-export const specialDays = pgTable(
+export const specialDays = mysqlTable(
   "special_days",
   {
-    id: text("id").primaryKey(),
-    name: text("name").notNull(),
-    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
-    endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+    id: varchar("id", { length: 191 }).primaryKey(),
+    name: varchar("name", { length: 191 }).notNull(),
+    startsAt: timestamp("starts_at").notNull(),
+    endsAt: timestamp("ends_at").notNull(),
     banner: text("banner"),
-    ruleId: text("rule_id")
+    ruleId: varchar("rule_id", { length: 191 })
       .notNull()
       .references(() => campaignRules.id, { onDelete: "restrict" }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [index("special_days_window_idx").on(table.startsAt, table.endsAt)],
 );
 
-export const coupons = pgTable(
+export const coupons = mysqlTable(
   "coupons",
   {
-    id: text("id").primaryKey(),
-    code: text("code").notNull(),
-    type: text("type").notNull(),
-    value: integer("value").notNull(),
-    minCart: integer("min_cart").notNull().default(0),
-    maxDiscount: integer("max_discount"),
-    usageLimit: integer("usage_limit"),
-    perUserLimit: integer("per_user_limit"),
-    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
-    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    scope: text("scope").notNull().default("all"),
+    id: varchar("id", { length: 191 }).primaryKey(),
+    code: varchar("code", { length: 191 }).notNull(),
+    type: varchar("type", { length: 64 }).notNull(),
+    value: int("value").notNull(),
+    minCart: int("min_cart").notNull().default(0),
+    maxDiscount: int("max_discount"),
+    usageLimit: int("usage_limit"),
+    perUserLimit: int("per_user_limit"),
+    startsAt: timestamp("starts_at").notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    scope: varchar("scope", { length: 64 }).notNull().default("all"),
     stackable: boolean("stackable").notNull().default(true),
-    status: text("status").notNull().default("active"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    status: varchar("status", { length: 64 }).notNull().default("active"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [uniqueIndex("coupons_code_idx").on(table.code)],
 );
 
-export const couponTargets = pgTable(
+export const couponTargets = mysqlTable(
   "coupon_targets",
   {
-    id: text("id").primaryKey(),
-    couponId: text("coupon_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    couponId: varchar("coupon_id", { length: 191 })
       .notNull()
       .references(() => coupons.id, { onDelete: "cascade" }),
-    scope: text("scope").notNull(),
-    targetId: text("target_id").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    scope: varchar("scope", { length: 64 }).notNull(),
+    targetId: varchar("target_id", { length: 191 }).notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [index("coupon_targets_coupon_idx").on(table.couponId)],
 );
 
-export const couponRedemptions = pgTable(
+export const couponRedemptions = mysqlTable(
   "coupon_redemptions",
   {
-    id: text("id").primaryKey(),
-    couponId: text("coupon_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    couponId: varchar("coupon_id", { length: 191 })
       .notNull()
       .references(() => coupons.id, { onDelete: "cascade" }),
-    userId: text("user_id").references(() => users.id, {
+    userId: varchar("user_id", { length: 191 }).references(() => users.id, {
       onDelete: "set null",
     }),
-    orderId: text("order_id")
+    orderId: varchar("order_id", { length: 191 })
       .notNull()
       .references(() => orders.id, { onDelete: "cascade" }),
-    amount: integer("amount").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    amount: int("amount").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("coupon_redemptions_order_unique_idx").on(

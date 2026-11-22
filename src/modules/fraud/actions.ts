@@ -109,8 +109,7 @@ export const updateFraudRuleAction = createAction({
         weight: input.weight,
         enabled: input.enabled,
       })
-      .onConflictDoUpdate({
-        target: fraudRules.key,
+      .onDuplicateKeyUpdate({
         set: {
           weight: input.weight,
           enabled: input.enabled,

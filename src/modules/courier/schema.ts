@@ -1,53 +1,46 @@
 import {
   index,
-  integer,
-  jsonb,
-  pgTable,
+  int,
+  json,
+  mysqlTable,
   text,
   timestamp,
   uniqueIndex,
-} from "drizzle-orm/pg-core";
+  varchar,
+} from "drizzle-orm/mysql-core";
 
 import { orders } from "@/modules/sales/schema";
 
-export const courierProviders = pgTable(
+export const courierProviders = mysqlTable(
   "courier_providers",
   {
-    id: text("id").primaryKey(),
-    code: text("code").notNull(),
+    id: varchar("id", { length: 191 }).primaryKey(),
+    code: varchar("code", { length: 191 }).notNull(),
     configEnc: text("config_enc").notNull(),
-    status: text("status").notNull().default("active"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    status: varchar("status", { length: 64 }).notNull().default("active"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [uniqueIndex("courier_providers_code_idx").on(table.code)],
 );
 
-export const shipments = pgTable(
+export const shipments = mysqlTable(
   "shipments",
   {
-    id: text("id").primaryKey(),
-    orderId: text("order_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    orderId: varchar("order_id", { length: 191 })
       .notNull()
       .references(() => orders.id, { onDelete: "cascade" }),
-    provider: text("provider").notNull(),
-    consignmentId: text("consignment_id"),
-    trackingCode: text("tracking_code"),
-    status: text("status").notNull().default("pending"),
-    codAmount: integer("cod_amount").notNull().default(0),
-    codCollected: integer("cod_collected").notNull().default(0),
-    fee: integer("fee").notNull().default(0),
-    raw: jsonb("raw").$type<Record<string, unknown>>(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    provider: varchar("provider", { length: 191 }).notNull(),
+    consignmentId: varchar("consignment_id", { length: 191 }),
+    trackingCode: varchar("tracking_code", { length: 191 }),
+    status: varchar("status", { length: 64 }).notNull().default("pending"),
+    codAmount: int("cod_amount").notNull().default(0),
+    codCollected: int("cod_collected").notNull().default(0),
+    fee: int("fee").notNull().default(0),
+    raw: json("raw").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [
     index("shipments_order_idx").on(table.orderId),
@@ -55,38 +48,30 @@ export const shipments = pgTable(
   ],
 );
 
-export const shipmentEvents = pgTable(
+export const shipmentEvents = mysqlTable(
   "shipment_events",
   {
-    id: text("id").primaryKey(),
-    shipmentId: text("shipment_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    shipmentId: varchar("shipment_id", { length: 191 })
       .notNull()
       .references(() => shipments.id, { onDelete: "cascade" }),
-    status: text("status").notNull(),
-    payload: jsonb("payload").$type<Record<string, unknown>>(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    status: varchar("status", { length: 64 }).notNull(),
+    payload: json("payload").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [index("shipment_events_shipment_idx").on(table.shipmentId)],
 );
 
-export const codSettlements = pgTable("cod_settlements", {
-  id: text("id").primaryKey(),
-  provider: text("provider").notNull(),
-  batchRef: text("batch_ref").notNull(),
-  totalCollected: integer("total_collected").notNull().default(0),
-  totalFee: integer("total_fee").notNull().default(0),
-  netAmount: integer("net_amount").notNull().default(0),
-  status: text("status").notNull().default("pending"),
-  settledAt: timestamp("settled_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+export const codSettlements = mysqlTable("cod_settlements", {
+  id: varchar("id", { length: 191 }).primaryKey(),
+  provider: varchar("provider", { length: 191 }).notNull(),
+  batchRef: varchar("batch_ref", { length: 191 }).notNull(),
+  totalCollected: int("total_collected").notNull().default(0),
+  totalFee: int("total_fee").notNull().default(0),
+  netAmount: int("net_amount").notNull().default(0),
+  status: varchar("status", { length: 64 }).notNull().default("pending"),
+  settledAt: timestamp("settled_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

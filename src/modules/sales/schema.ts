@@ -1,14 +1,15 @@
-import { relations, sql } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 import {
   boolean,
   index,
-  integer,
-  jsonb,
-  pgTable,
+  int,
+  json,
+  mysqlTable,
   text,
   timestamp,
   uniqueIndex,
-} from "drizzle-orm/pg-core";
+  varchar,
+} from "drizzle-orm/mysql-core";
 
 import { variants } from "@/modules/catalog/schema";
 import { users } from "@/modules/rbac/schema";
@@ -22,23 +23,19 @@ export interface ShippingAddressSnapshot {
   line: string;
 }
 
-export const customers = pgTable(
+export const customers = mysqlTable(
   "customers",
   {
-    id: text("id").primaryKey(),
-    userId: text("user_id").references(() => users.id, {
+    id: varchar("id", { length: 191 }).primaryKey(),
+    userId: varchar("user_id", { length: 191 }).references(() => users.id, {
       onDelete: "set null",
     }),
-    phone: text("phone").notNull(),
-    email: text("email"),
-    name: text("name").notNull(),
+    phone: varchar("phone", { length: 191 }).notNull(),
+    email: varchar("email", { length: 191 }),
+    name: varchar("name", { length: 191 }).notNull(),
     isGuest: boolean("is_guest").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("customers_phone_idx").on(table.phone),
@@ -46,49 +43,40 @@ export const customers = pgTable(
   ],
 );
 
-export const addresses = pgTable(
+export const addresses = mysqlTable(
   "addresses",
   {
-    id: text("id").primaryKey(),
-    customerId: text("customer_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    customerId: varchar("customer_id", { length: 191 })
       .notNull()
       .references(() => customers.id, { onDelete: "cascade" }),
-    division: text("division").notNull(),
-    district: text("district").notNull(),
-    thana: text("thana").notNull(),
+    division: varchar("division", { length: 191 }).notNull(),
+    district: varchar("district", { length: 191 }).notNull(),
+    thana: varchar("thana", { length: 191 }).notNull(),
     line: text("line").notNull(),
     isDefault: boolean("is_default").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [index("addresses_customer_id_idx").on(table.customerId)],
 );
 
-export const carts = pgTable(
+export const carts = mysqlTable(
   "carts",
   {
-    id: text("id").primaryKey(),
-    sessionId: text("session_id"),
-    userId: text("user_id").references(() => users.id, {
+    id: varchar("id", { length: 191 }).primaryKey(),
+    sessionId: varchar("session_id", { length: 191 }),
+    userId: varchar("user_id", { length: 191 }).references(() => users.id, {
       onDelete: "set null",
     }),
-    customerId: text("customer_id").references(() => customers.id, {
-      onDelete: "set null",
-    }),
-    status: text("status").notNull().default("active"),
-    lastActivityAt: timestamp("last_activity_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    customerId: varchar("customer_id", { length: 191 }).references(
+      () => customers.id,
+      { onDelete: "set null" },
+    ),
+    status: varchar("status", { length: 64 }).notNull().default("active"),
+    lastActivityAt: timestamp("last_activity_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [
     index("carts_session_status_idx").on(table.sessionId, table.status),
@@ -96,137 +84,117 @@ export const carts = pgTable(
   ],
 );
 
-export const cartItems = pgTable(
+export const cartItems = mysqlTable(
   "cart_items",
   {
-    id: text("id").primaryKey(),
-    cartId: text("cart_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    cartId: varchar("cart_id", { length: 191 })
       .notNull()
       .references(() => carts.id, { onDelete: "cascade" }),
-    variantId: text("variant_id")
+    variantId: varchar("variant_id", { length: 191 })
       .notNull()
       .references(() => variants.id, { onDelete: "cascade" }),
-    qty: integer("qty").notNull().default(1),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    qty: int("qty").notNull().default(1),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("cart_items_pair_idx").on(table.cartId, table.variantId),
   ],
 );
 
-export const orders = pgTable(
+export const orders = mysqlTable(
   "orders",
   {
-    id: text("id").primaryKey(),
-    number: text("number").notNull(),
-    customerId: text("customer_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    number: varchar("number", { length: 191 }).notNull(),
+    customerId: varchar("customer_id", { length: 191 })
       .notNull()
       .references(() => customers.id, { onDelete: "restrict" }),
-    status: text("status").notNull().default("pending"),
-    paymentStatus: text("payment_status").notNull().default("pending"),
-    subtotal: integer("subtotal").notNull(),
-    discountTotal: integer("discount_total").notNull().default(0),
-    shippingFee: integer("shipping_fee").notNull().default(0),
-    total: integer("total").notNull(),
-    shippingAddress: jsonb("shipping_address")
+    status: varchar("status", { length: 64 }).notNull().default("pending"),
+    paymentStatus: varchar("payment_status", { length: 64 })
+      .notNull()
+      .default("pending"),
+    subtotal: int("subtotal").notNull(),
+    discountTotal: int("discount_total").notNull().default(0),
+    shippingFee: int("shipping_fee").notNull().default(0),
+    total: int("total").notNull(),
+    shippingAddress: json("shipping_address")
       .$type<ShippingAddressSnapshot>()
       .notNull(),
     note: text("note"),
     ip: text("ip"),
     userAgent: text("user_agent"),
-    idempotencyKey: text("idempotency_key").notNull(),
-    deletedAt: timestamp("deleted_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    idempotencyKey: varchar("idempotency_key", { length: 191 }).notNull(),
+    deletedAt: timestamp("deleted_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("orders_number_idx").on(table.number),
     uniqueIndex("orders_idempotency_idx").on(table.idempotencyKey),
     index("orders_customer_idx").on(table.customerId),
-    index("orders_status_created_idx")
-      .on(table.status, table.createdAt)
-      .where(sql`${table.deletedAt} IS NULL`),
+    index("orders_status_created_idx").on(table.status, table.createdAt),
   ],
 );
 
-export const orderItems = pgTable(
+export const orderItems = mysqlTable(
   "order_items",
   {
-    id: text("id").primaryKey(),
-    orderId: text("order_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    orderId: varchar("order_id", { length: 191 })
       .notNull()
       .references(() => orders.id, { onDelete: "cascade" }),
-    variantId: text("variant_id")
+    variantId: varchar("variant_id", { length: 191 })
       .notNull()
       .references(() => variants.id, { onDelete: "restrict" }),
-    qty: integer("qty").notNull(),
-    priceSnapshot: integer("price_snapshot").notNull(),
+    qty: int("qty").notNull(),
+    priceSnapshot: int("price_snapshot").notNull(),
     nameSnapshot: text("name_snapshot").notNull(),
-    skuSnapshot: text("sku_snapshot").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    skuSnapshot: varchar("sku_snapshot", { length: 191 }).notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [index("order_items_order_idx").on(table.orderId)],
 );
 
-export const orderEvents = pgTable(
+export const orderEvents = mysqlTable(
   "order_events",
   {
-    id: text("id").primaryKey(),
-    orderId: text("order_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    orderId: varchar("order_id", { length: 191 })
       .notNull()
       .references(() => orders.id, { onDelete: "cascade" }),
-    fromStatus: text("from_status"),
-    toStatus: text("to_status").notNull(),
-    actor: text("actor").notNull(),
+    fromStatus: varchar("from_status", { length: 64 }),
+    toStatus: varchar("to_status", { length: 64 }).notNull(),
+    actor: varchar("actor", { length: 191 }).notNull(),
     note: text("note"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [index("order_events_order_idx").on(table.orderId)],
 );
 
-export const payments = pgTable(
+export const payments = mysqlTable(
   "payments",
   {
-    id: text("id").primaryKey(),
-    orderId: text("order_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    orderId: varchar("order_id", { length: 191 })
       .notNull()
       .references(() => orders.id, { onDelete: "cascade" }),
-    method: text("method").notNull().default("cod"),
-    gatewayProvider: text("gateway_provider"),
-    status: text("status").notNull().default("pending"),
-    txnId: text("txn_id"),
-    gatewayTxnId: text("gateway_txn_id"),
-    amount: integer("amount").notNull(),
-    refundedAmount: integer("refunded_amount").notNull().default(0),
-    currency: text("currency").notNull().default("BDT"),
-    rawResponse: jsonb("raw_response").$type<Record<string, unknown>>(),
-    idempotencyKey: text("idempotency_key").notNull(),
-    paidAt: timestamp("paid_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    method: varchar("method", { length: 64 }).notNull().default("cod"),
+    gatewayProvider: varchar("gateway_provider", { length: 64 }),
+    status: varchar("status", { length: 64 }).notNull().default("pending"),
+    txnId: varchar("txn_id", { length: 191 }),
+    gatewayTxnId: varchar("gateway_txn_id", { length: 191 }),
+    amount: int("amount").notNull(),
+    refundedAmount: int("refunded_amount").notNull().default(0),
+    currency: varchar("currency", { length: 16 }).notNull().default("BDT"),
+    rawResponse: json("raw_response").$type<Record<string, unknown>>(),
+    idempotencyKey: varchar("idempotency_key", { length: 191 }).notNull(),
+    paidAt: timestamp("paid_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [
     index("payments_order_idx").on(table.orderId),

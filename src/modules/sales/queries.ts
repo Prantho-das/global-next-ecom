@@ -5,8 +5,10 @@ import {
   eq,
   inArray,
   isNull,
+  like,
   lt,
   ne,
+  or,
   sql,
 } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
@@ -138,10 +140,11 @@ export async function listStoreProductsCursor(opts: {
   }
 
   if (opts.search !== undefined && opts.search.trim() !== "") {
-    const q = opts.search.trim();
-    conditions.push(
-      sql`to_tsvector('english', coalesce(${products.name}, '') || ' ' || coalesce(${products.description}, '')) @@ plainto_tsquery('english', ${q})`,
-    );
+    const term = `%${opts.search.trim()}%`;
+    const searchCond = or(like(products.name, term), like(products.description, term));
+    if (searchCond !== undefined) {
+      conditions.push(searchCond);
+    }
   }
 
   if (opts.cursor !== undefined && opts.cursor !== null && opts.cursor !== "") {
@@ -216,6 +219,7 @@ export const getStoreProductBySlugCached = unstable_cache(
             compareAtPrice: true,
             stock: true,
             optionValues: true,
+            imageId: true,
             isDefault: true,
           },
         },

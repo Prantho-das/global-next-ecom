@@ -1,5 +1,5 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/mysql2";
+import mysql, { type Pool } from "mysql2/promise";
 
 import { getEnv } from "@/lib/env";
 import * as authSchema from "@/modules/auth/schema";
@@ -13,6 +13,7 @@ import * as pricingSchema from "@/modules/pricing/schema";
 import * as rbacSchema from "@/modules/rbac/schema";
 import * as reportSchema from "@/modules/report/schema";
 import * as salesSchema from "@/modules/sales/schema";
+import * as settingsSchema from "@/modules/settings/schema";
 import * as shippingSchema from "@/modules/shipping/schema";
 
 const schema = {
@@ -28,24 +29,35 @@ const schema = {
   ...notifySchema,
   ...marketingSchema,
   ...reportSchema,
+  ...settingsSchema,
 };
 
-let poolInstance: Pool | null = null;
-let dbInstance: ReturnType<typeof drizzle<typeof schema>> | null = null;
-
-export function getPool(): Pool {
-  if (poolInstance === null) {
-    poolInstance = new Pool({
-      connectionString: getEnv().DATABASE_URL,
-      max: 10,
-    });
-  }
-  return poolInstance;
+function createDb() {
+  return drizzle(getPool(), { schema, mode: "default" });
 }
 
-export function getDb(): ReturnType<typeof drizzle<typeof schema>> {
-  if (dbInstance === null) {
-    dbInstance = drizzle(getPool(), { schema });
+type DbInstance = ReturnType<typeof createDb>;
+
+const globalForDb = globalThis as unknown as {
+  __ecomPool?: Pool;
+  __ecomDb?: DbInstance;
+};
+
+export function getPool(): Pool {
+  if (globalForDb.__ecomPool === undefined) {
+    globalForDb.__ecomPool = mysql.createPool({
+      uri: getEnv().DATABASE_URL,
+      connectionLimit: process.env.NODE_ENV === "production" ? 10 : 5,
+      waitForConnections: true,
+      enableKeepAlive: true,
+    });
   }
-  return dbInstance;
+  return globalForDb.__ecomPool;
+}
+
+export function getDb(): DbInstance {
+  if (globalForDb.__ecomDb === undefined) {
+    globalForDb.__ecomDb = createDb();
+  }
+  return globalForDb.__ecomDb;
 }

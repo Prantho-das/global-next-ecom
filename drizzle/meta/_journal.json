@@ -1,54 +1,33 @@
 {
   "version": "7",
-  "dialect": "postgresql",
+  "dialect": "mysql",
   "entries": [
     {
       "idx": 0,
-      "version": "7",
-      "when": 1795168074868,
-      "tag": "0000_neat_maximus",
+      "version": "5",
+      "when": 1795172734353,
+      "tag": "0000_shiny_blink",
       "breakpoints": true
     },
     {
       "idx": 1,
-      "version": "7",
-      "when": 1795168620225,
-      "tag": "0001_white_lionheart",
+      "version": "5",
+      "when": 1795187744895,
+      "tag": "0001_slim_miek",
       "breakpoints": true
     },
     {
       "idx": 2,
-      "version": "7",
-      "when": 1795169182085,
-      "tag": "0002_goofy_sauron",
+      "version": "5",
+      "when": 1795200543496,
+      "tag": "0002_quiet_emma_frost",
       "breakpoints": true
     },
     {
       "idx": 3,
-      "version": "7",
-      "when": 1795169651951,
-      "tag": "0003_opposite_romulus",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1795169946219,
-      "tag": "0004_lovely_lady_deathstrike",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1795170197723,
-      "tag": "0005_spotty_gauntlet",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1795170415045,
-      "tag": "0006_wild_red_wolf",
+      "version": "5",
+      "when": 1795202265482,
+      "tag": "0003_dusty_sway",
       "breakpoints": true
     }
   ]

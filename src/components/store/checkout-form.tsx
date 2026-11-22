@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 
 import { formatBdt } from "@/lib/money";
+import { trackStoreEvent } from "@/lib/tracking";
 import { captureAbandonContactAction } from "@/modules/marketing/actions";
 import { applyCouponPreviewAction } from "@/modules/pricing/actions";
 import type { PriceBreakdown } from "@/modules/pricing/types";
@@ -14,33 +15,135 @@ import {
 } from "@/modules/sales/actions";
 import type { CartViewItem } from "@/modules/sales/queries";
 import { DEFAULT_FLAT_SHIPPING_POISHA } from "@/modules/sales/service";
+import type { ShippingLocationRule } from "@/modules/settings/queries";
 
-const BD_DIVISIONS: Record<string, Record<string, string[]>> = {
-  Dhaka: {
-    Dhaka: ["Dhanmondi", "Gulshan", "Mirpur", "Uttara", "Mohammadpur"],
-    Gazipur: ["Gazipur Sadar", "Tongi", "Sreepur"],
+const LOCATION_TREE: Record<
+  string,
+  Record<string, Record<string, string[]>>
+> = {
+  Bangladesh: {
+    Dhaka: {
+      Dhaka: ["Dhanmondi", "Gulshan", "Mirpur", "Uttara", "Mohammadpur", "Motijheel", "Banani"],
+      Gazipur: ["Gazipur Sadar", "Tongi", "Sreepur"],
+      Narayanganj: ["Narayanganj Sadar", "Siddhirganj", "Fatullah"],
+      Savar: ["Savar Sadar", "Ashulia"],
+    },
+    Chattogram: {
+      Chattogram: ["Kotwali", "Panchlaish", "Halishahar", "Agrabad"],
+      "Cox's Bazar": ["Cox's Bazar Sadar", "Teknaf"],
+      Cumilla: ["Cumilla Sadar", "Daudkandi"],
+    },
+    Sylhet: {
+      Sylhet: ["Sylhet Sadar", "Beanibazar", "Zindabazar"],
+      Moulvibazar: ["Moulvibazar Sadar", "Sreemangal"],
+    },
+    Rajshahi: {
+      Rajshahi: ["Boalia", "Motihar", "Rajpara"],
+      Bogura: ["Bogura Sadar", "Sherpur"],
+    },
+    Khulna: {
+      Khulna: ["Khulna Sadar", "Sonadanga", "Khalishpur"],
+      Jashore: ["Jashore Sadar", "Benapole"],
+    },
+    Barishal: {
+      Barishal: ["Barishal Sadar", "Babuganj"],
+    },
+    Rangpur: {
+      Rangpur: ["Rangpur Sadar", "Mithapukur"],
+    },
+    Mymensingh: {
+      Mymensingh: ["Mymensingh Sadar", "Trishal"],
+    },
   },
-  Chattogram: {
-    Chattogram: ["Kotwali", "Panchlaish", "Halishahar", "Agrabad"],
-    "Cox's Bazar": ["Cox's Bazar Sadar", "Teknaf"],
+  India: {
+    "West Bengal": {
+      Kolkata: ["Salt Lake", "Park Street", "New Town", "Howrah"],
+      Siliguri: ["Siliguri Town", "Matigara"],
+    },
+    Maharashtra: {
+      Mumbai: ["Andheri", "Bandra", "Colaba"],
+      Pune: ["Kothrud", "Hinjewadi"],
+    },
+    Delhi: {
+      "New Delhi": ["Connaught Place", "Saket", "Dwarka"],
+    },
   },
-  Sylhet: {
-    Sylhet: ["Sylhet Sadar", "Beanibazar"],
+  "United Arab Emirates": {
+    Dubai: {
+      Dubai: ["Deira", "Bur Dubai", "Downtown", "Marina"],
+    },
+    "Abu Dhabi": {
+      "Abu Dhabi": ["Al Reem", "Khalifa City"],
+    },
+  },
+  "United Kingdom": {
+    England: {
+      London: ["Central London", "East London", "Canary Wharf"],
+      Manchester: ["City Centre", "Salford"],
+    },
+  },
+  "United States": {
+    "New York": {
+      "New York City": ["Manhattan", "Brooklyn", "Queens"],
+    },
+    California: {
+      "Los Angeles": ["Downtown LA", "Santa Monica"],
+    },
   },
 };
 
 export interface CheckoutFormProps {
   items: readonly CartViewItem[];
   subtotal: number;
+  shippingMode?: "simple" | "advanced";
+  insideDhakaFee?: number;
+  outsideDhakaFee?: number;
+  defaultCountry?: string;
+  shippingLocations?: readonly ShippingLocationRule[];
 }
 
-export function CheckoutForm({ items, subtotal }: CheckoutFormProps) {
+export function CheckoutForm({
+  items,
+  subtotal,
+  shippingMode = "simple",
+  insideDhakaFee = 60,
+  outsideDhakaFee = 120,
+  defaultCountry = "Bangladesh",
+  shippingLocations = [],
+}: CheckoutFormProps) {
   const router = useRouter();
+  const dynamicTree: Record<string, Record<string, Record<string, string[]>>> =
+    shippingLocations.length > 0
+      ? shippingLocations.reduce<
+          Record<string, Record<string, Record<string, string[]>>>
+        >((acc, loc) => {
+          const cMap = (acc[loc.country] ??= {});
+          const sMap = (cMap[loc.state] ??= {});
+          const existingThanas =
+            LOCATION_TREE[loc.country]?.[loc.state]?.[loc.area] ?? [loc.area];
+          sMap[loc.area] = existingThanas;
+          return acc;
+        }, {})
+      : LOCATION_TREE;
+
+  const initialCountry =
+    dynamicTree[defaultCountry] !== undefined
+      ? defaultCountry
+      : (Object.keys(dynamicTree)[0] ?? "Bangladesh");
+  const initialState = Object.keys(dynamicTree[initialCountry] ?? {})[0] ?? "Dhaka";
+  const initialDistrict =
+    Object.keys(dynamicTree[initialCountry]?.[initialState] ?? {})[0] ?? "Dhaka";
+  const initialThana =
+    dynamicTree[initialCountry]?.[initialState]?.[initialDistrict]?.[0] ??
+    "Dhanmondi";
+
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
-  const [division, setDivision] = useState("Dhaka");
-  const [district, setDistrict] = useState("Dhaka");
-  const [thana, setThana] = useState("Dhanmondi");
+  const [simpleZone, setSimpleZone] = useState<"inside" | "outside">("inside");
+  const [country, setCountry] = useState(initialCountry);
+  const [division, setDivision] = useState(initialState);
+  const [district, setDistrict] = useState(initialDistrict);
+  const [thana, setThana] = useState(initialThana);
   const [line, setLine] = useState("");
   const [note, setNote] = useState("");
   const [couponCode, setCouponCode] = useState("");
@@ -53,8 +156,33 @@ export function CheckoutForm({ items, subtotal }: CheckoutFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const districts = Object.keys(BD_DIVISIONS[division] ?? {});
-  const thanas = BD_DIVISIONS[division]?.[district] ?? [];
+  useEffect(() => {
+    trackStoreEvent("InitiateCheckout", {
+      valueMajor: subtotal / 100,
+      contentIds: items.map((i) => i.variantId),
+      numItems: items.reduce((sum, i) => sum + i.qty, 0),
+    });
+  }, []);
+
+  const states = Object.keys(dynamicTree[country] ?? {});
+  const districts = Object.keys(dynamicTree[country]?.[division] ?? {});
+  const thanas = dynamicTree[country]?.[division]?.[district] ?? [];
+
+  const matchedRule = shippingLocations.find(
+    (loc) =>
+      loc.country === country &&
+      loc.state === division &&
+      loc.area === district,
+  );
+
+  const shippingFeePoisha =
+    shippingMode === "simple"
+      ? (simpleZone === "inside" ? insideDhakaFee : outsideDhakaFee) * 100
+      : matchedRule !== undefined
+        ? Math.round(matchedRule.cost * 100)
+        : (country === "Bangladesh" && district === "Dhaka"
+            ? insideDhakaFee
+            : outsideDhakaFee) * 100 || DEFAULT_FLAT_SHIPPING_POISHA;
 
   async function handleSendOtp() {
     setError(null);
@@ -70,7 +198,10 @@ export function CheckoutForm({ items, subtotal }: CheckoutFormProps) {
 
   async function handleApplyCoupon() {
     setError(null);
-    const res = await applyCouponPreviewAction({ code: couponCode });
+    const res = await applyCouponPreviewAction({
+      code: couponCode,
+      shippingFee: shippingFeePoisha,
+    });
     if (!res.ok) {
       setCouponPreview(null);
       setError(res.message);
@@ -83,12 +214,32 @@ export function CheckoutForm({ items, subtotal }: CheckoutFormProps) {
     event.preventDefault();
     setError(null);
     setLoading(true);
+    const effectiveCountry = shippingMode === "simple" ? "Bangladesh" : country;
+    const effectiveDivision =
+      shippingMode === "simple"
+        ? simpleZone === "inside"
+          ? "Dhaka"
+          : "Outside Dhaka"
+        : division;
+    const effectiveDistrict =
+      shippingMode === "simple"
+        ? simpleZone === "inside"
+          ? "Dhaka"
+          : "Outside Dhaka"
+        : district;
+    const effectiveThana =
+      shippingMode === "simple"
+        ? simpleZone === "inside"
+          ? "Dhaka"
+          : "Outside Dhaka"
+        : thana;
     const res = await placeCodOrderAction({
       phone,
       name,
-      division,
-      district,
-      thana,
+      country: effectiveCountry,
+      division: effectiveDivision,
+      district: effectiveDistrict,
+      thana: effectiveThana,
       line,
       note: note.trim() || undefined,
       couponCode: couponCode.trim() || undefined,
@@ -175,63 +326,128 @@ export function CheckoutForm({ items, subtotal }: CheckoutFormProps) {
             />
           </div>
 
-          <div className="row">
-            <div className="col s12 m4">
-              <label htmlFor="chk-div">Division</label>
-              <select
-                id="chk-div"
-                className="browser-default"
-                value={division}
-                onChange={(e) => {
-                  const nextDiv = e.target.value;
-                  setDivision(nextDiv);
-                  const nextDist = Object.keys(BD_DIVISIONS[nextDiv] ?? {})[0] ?? "";
-                  setDistrict(nextDist);
-                  setThana(BD_DIVISIONS[nextDiv]?.[nextDist]?.[0] ?? "");
-                }}
-              >
-                {Object.keys(BD_DIVISIONS).map((d) => (
-                  <option key={d} value={d}>
-                    {d}
+          {shippingMode === "simple" ? (
+            <div className="row">
+              <div className="col s12">
+                <label htmlFor="chk-zone">Delivery Area</label>
+                <select
+                  id="chk-zone"
+                  className="browser-default"
+                  value={simpleZone}
+                  onChange={(e) => {
+                    const nextZone = e.target.value as "inside" | "outside";
+                    setSimpleZone(nextZone);
+                    setCouponPreview(null);
+                  }}
+                >
+                  <option value="inside">
+                    Inside Dhaka ({formatBdt(insideDhakaFee * 100)})
                   </option>
-                ))}
-              </select>
-            </div>
-            <div className="col s12 m4">
-              <label htmlFor="chk-dist">District</label>
-              <select
-                id="chk-dist"
-                className="browser-default"
-                value={district}
-                onChange={(e) => {
-                  const nextDist = e.target.value;
-                  setDistrict(nextDist);
-                  setThana(BD_DIVISIONS[division]?.[nextDist]?.[0] ?? "");
-                }}
-              >
-                {districts.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
+                  <option value="outside">
+                    Outside Dhaka ({formatBdt(outsideDhakaFee * 100)})
                   </option>
-                ))}
-              </select>
+                </select>
+              </div>
             </div>
-            <div className="col s12 m4">
-              <label htmlFor="chk-thana">Thana</label>
-              <select
-                id="chk-thana"
-                className="browser-default"
-                value={thana}
-                onChange={(e) => setThana(e.target.value)}
-              >
-                {thanas.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
+          ) : (
+            <div className="row">
+              <div className="col s12 m6">
+                <label htmlFor="chk-country">Country</label>
+                <select
+                  id="chk-country"
+                  className="browser-default"
+                  value={country}
+                  onChange={(e) => {
+                    const nextCountry = e.target.value;
+                    setCountry(nextCountry);
+                    const nextState =
+                      Object.keys(dynamicTree[nextCountry] ?? {})[0] ?? "";
+                    setDivision(nextState);
+                    const nextDist =
+                      Object.keys(
+                        dynamicTree[nextCountry]?.[nextState] ?? {},
+                      )[0] ?? "";
+                    setDistrict(nextDist);
+                    setThana(
+                      dynamicTree[nextCountry]?.[nextState]?.[nextDist]?.[0] ??
+                        "",
+                    );
+                    setCouponPreview(null);
+                  }}
+                >
+                  {Object.keys(dynamicTree).map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col s12 m6">
+                <label htmlFor="chk-div">State / Division</label>
+                <select
+                  id="chk-div"
+                  className="browser-default"
+                  value={division}
+                  onChange={(e) => {
+                    const nextDiv = e.target.value;
+                    setDivision(nextDiv);
+                    const nextDist =
+                      Object.keys(
+                        dynamicTree[country]?.[nextDiv] ?? {},
+                      )[0] ?? "";
+                    setDistrict(nextDist);
+                    setThana(
+                      dynamicTree[country]?.[nextDiv]?.[nextDist]?.[0] ?? "",
+                    );
+                    setCouponPreview(null);
+                  }}
+                >
+                  {states.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col s12 m6" style={{ marginTop: "12px" }}>
+                <label htmlFor="chk-dist">District / City</label>
+                <select
+                  id="chk-dist"
+                  className="browser-default"
+                  value={district}
+                  onChange={(e) => {
+                    const nextDist = e.target.value;
+                    setDistrict(nextDist);
+                    setThana(
+                      dynamicTree[country]?.[division]?.[nextDist]?.[0] ?? "",
+                    );
+                    setCouponPreview(null);
+                  }}
+                >
+                  {districts.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col s12 m6" style={{ marginTop: "12px" }}>
+                <label htmlFor="chk-thana">Area / Thana</label>
+                <select
+                  id="chk-thana"
+                  className="browser-default"
+                  value={thana}
+                  onChange={(e) => setThana(e.target.value)}
+                >
+                  {thanas.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="input-field">
             <label htmlFor="chk-line" className="active">
@@ -318,7 +534,7 @@ export function CheckoutForm({ items, subtotal }: CheckoutFormProps) {
             Shipping{" "}
             <span className="right">
               {formatBdt(
-                couponPreview?.shippingFee ?? DEFAULT_FLAT_SHIPPING_POISHA,
+                couponPreview?.shippingFee ?? shippingFeePoisha,
               )}
             </span>
           </p>
@@ -327,7 +543,7 @@ export function CheckoutForm({ items, subtotal }: CheckoutFormProps) {
             <span className="right">
               {formatBdt(
                 couponPreview?.total ??
-                  subtotal + DEFAULT_FLAT_SHIPPING_POISHA,
+                  subtotal + shippingFeePoisha,
               )}
             </span>
           </p>

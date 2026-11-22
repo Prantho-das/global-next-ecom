@@ -52,8 +52,7 @@ export const upsertPaymentProviderAction = createAction({
         position: input.position ?? 0,
         sandboxMode: input.sandboxMode ?? true,
       })
-      .onConflictDoUpdate({
-        target: paymentProviders.code,
+      .onDuplicateKeyUpdate({
         set: {
           name: input.name,
           configEnc,

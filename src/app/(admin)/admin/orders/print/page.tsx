@@ -49,11 +49,11 @@ export default async function AdminOrdersPrintPage({
   );
 
   return (
-    <section>
+    <section className="bg-white border border-slate-200/80 rounded p-4 shadow-sm">
       <iframe
         title="Printable invoices"
         srcDoc={html}
-        style={{ width: "100%", minHeight: "80vh", border: "1px solid #ddd" }}
+        className="w-full min-h-[80vh] border border-slate-200 rounded"
       />
     </section>
   );

@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "easy-admin-by-prantho": {
+      "source": "prantho-das/easy-admin-by-prantho",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "496323c16280e254491e1e30e53750d39de30d4a440cd6d0cad924f208f84b6a"
+    }
+  }
+}

@@ -2,7 +2,8 @@
 
 import { randomUUID } from "crypto";
 
-import { and, eq, isNull, ne } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne } from "drizzle-orm";
+import { z } from "zod";
 
 import { createAction } from "@/lib/action";
 import { getDb } from "@/lib/db";
@@ -14,6 +15,8 @@ import {
   productImages,
   productOptions,
   products,
+  purchaseOrderItems,
+  purchaseOrders,
   stockMovements,
   variants,
 } from "@/modules/catalog/schema";
@@ -65,6 +68,7 @@ export const upsertBrandAction = createAction({
         .set({
           name: input.name,
           slug,
+          status: input.status,
           logoUrl: input.logoUrl ?? null,
           seo: input.seo ?? null,
           updatedAt: new Date(),
@@ -75,6 +79,7 @@ export const upsertBrandAction = createAction({
         id,
         name: input.name,
         slug,
+        status: input.status,
         logoUrl: input.logoUrl ?? null,
         seo: input.seo ?? null,
       });
@@ -154,6 +159,7 @@ export const upsertCategoryAction = createAction({
           parentId: input.parentId ?? null,
           name: input.name,
           slug,
+          status: input.status,
           path,
           depth,
           position: input.position,
@@ -167,6 +173,7 @@ export const upsertCategoryAction = createAction({
         parentId: input.parentId ?? null,
         name: input.name,
         slug,
+        status: input.status,
         path,
         depth,
         position: input.position,
@@ -363,8 +370,7 @@ export const upsertProductAction = createAction({
             isDefault: variant.isDefault,
             deletedAt: null,
           })
-          .onConflictDoUpdate({
-            target: variants.sku,
+          .onDuplicateKeyUpdate({
             set: {
               price: variant.price,
               compareAtPrice: variant.compareAtPrice ?? null,
@@ -372,6 +378,7 @@ export const upsertProductAction = createAction({
               stock: variant.stock,
               weightG: variant.weightG,
               optionValues: variant.optionValues,
+              imageId: variant.imageId ?? null,
               isDefault: variant.isDefault,
               deletedAt: null,
               updatedAt: new Date(),
@@ -438,6 +445,106 @@ export const adjustStockAction = createAction({
         refId: input.refId ?? "admin",
       });
       return { variantId: target.id, stock: nextStock };
+    });
+  },
+});
+
+
+const createPurchaseOrderSchema = z.object({
+  supplierName: z.string().trim().min(2).max(150),
+  supplierPhone: z.string().trim().max(40).optional(),
+  note: z.string().trim().max(300).optional(),
+  items: z
+    .array(
+      z.object({
+        variantId: z.string().min(1),
+        qty: z.number().int().min(1).max(100000),
+        unitCost: z.number().int().min(0),
+      }),
+    )
+    .min(1),
+});
+
+export const createPurchaseOrderAction = createAction({
+  permission: "stock:update",
+  schema: createPurchaseOrderSchema,
+  revalidateTags: ["products", "stock"],
+  audit: {
+    action: "create_purchase_order",
+    entity: "purchase_order",
+    getEntityId: (out: { poId: string }) => out.poId,
+  },
+  handler: async (input) => {
+    const db = getDb();
+    const poId = randomUUID();
+    const now = new Date();
+    const y = now.getUTCFullYear();
+    const m = String(now.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(now.getUTCDate()).padStart(2, "0");
+    const poNumber = `PO-${y}${m}${d}-${randomUUID().slice(0, 6).toUpperCase()}`;
+
+    return db.transaction(async (tx) => {
+      const variantIds = input.items.map((i) => i.variantId);
+      const lockedVars = await tx
+        .select({ id: variants.id, stock: variants.stock })
+        .from(variants)
+        .where(inArray(variants.id, variantIds))
+        .for("update");
+
+      const stockMap = new Map(lockedVars.map((v) => [v.id, v.stock]));
+      let totalCost = 0;
+
+      for (const item of input.items) {
+        if (!stockMap.has(item.variantId)) {
+          throw new AppError("NOT_FOUND", "Variant not found");
+        }
+        totalCost += item.qty * item.unitCost;
+      }
+
+      await tx.insert(purchaseOrders).values({
+        id: poId,
+        poNumber,
+        supplierName: input.supplierName,
+        supplierPhone: input.supplierPhone?.trim() || null,
+        status: "received",
+        totalCost,
+        note: input.note?.trim() || null,
+        receivedAt: now,
+      });
+
+      for (const item of input.items) {
+        const currentStock = stockMap.get(item.variantId) ?? 0;
+        const nextStock = currentStock + item.qty;
+        stockMap.set(item.variantId, nextStock);
+
+        await tx.insert(purchaseOrderItems).values({
+          id: randomUUID(),
+          purchaseOrderId: poId,
+          variantId: item.variantId,
+          qty: item.qty,
+          unitCost: item.unitCost,
+        });
+
+        await tx
+          .update(variants)
+          .set({
+            stock: nextStock,
+            ...(item.unitCost > 0 ? { costPrice: item.unitCost } : {}),
+            updatedAt: now,
+          })
+          .where(eq(variants.id, item.variantId));
+
+        await tx.insert(stockMovements).values({
+          id: randomUUID(),
+          variantId: item.variantId,
+          delta: item.qty,
+          reason: `Purchase ${poNumber} (${input.supplierName})`,
+          refType: "restock",
+          refId: poId,
+        });
+      }
+
+      return { poId, poNumber, totalCost };
     });
   },
 });

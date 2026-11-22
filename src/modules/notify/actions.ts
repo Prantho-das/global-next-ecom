@@ -64,8 +64,7 @@ export const upsertNotificationTemplateAction = createAction({
         body: input.body,
         vars: input.vars ?? [],
       })
-      .onConflictDoUpdate({
-        target: [templates.channel, templates.key],
+      .onDuplicateKeyUpdate({
         set: {
           subject: input.subject ?? null,
           body: input.body,
@@ -112,8 +111,7 @@ export const registerPushTokenAction = createAction({
         token: input.token,
         platform: input.platform ?? "web",
       })
-      .onConflictDoUpdate({
-        target: pushTokens.token,
+      .onDuplicateKeyUpdate({
         set: {
           userId: ctx.userId,
           platform: input.platform ?? "web",
@@ -140,8 +138,7 @@ export const updateNotificationPreferencesAction = createAction({
         smsEnabled: input.smsEnabled,
         pushEnabled: input.pushEnabled,
       })
-      .onConflictDoUpdate({
-        target: notificationPreferences.userId,
+      .onDuplicateKeyUpdate({
         set: {
           emailEnabled: input.emailEnabled,
           smsEnabled: input.smsEnabled,

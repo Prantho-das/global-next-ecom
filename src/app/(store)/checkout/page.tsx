@@ -5,13 +5,18 @@ import Link from "next/link";
 import { CheckoutForm } from "@/components/store/checkout-form";
 import { getSession } from "@/lib/auth";
 import { getActiveCartView } from "@/modules/sales/queries";
+import { getSiteSettings } from "@/modules/settings/queries";
 
 export const metadata: Metadata = {
   title: "Checkout | BD Shop",
 };
 
 export default async function CheckoutPage() {
-  const [session, cookieStore] = await Promise.all([getSession(), cookies()]);
+  const [session, cookieStore, siteSettings] = await Promise.all([
+    getSession(),
+    cookies(),
+    getSiteSettings(),
+  ]);
   const sessionId = cookieStore.get("ecom_cart_sid")?.value ?? null;
   const userId = session?.user?.id ?? null;
   const cart = await getActiveCartView(sessionId, userId);
@@ -27,7 +32,15 @@ export default async function CheckoutPage() {
           </Link>
         </div>
       ) : (
-        <CheckoutForm items={cart.items} subtotal={cart.subtotal} />
+        <CheckoutForm
+          items={cart.items}
+          subtotal={cart.subtotal}
+          shippingMode={siteSettings.shippingMode}
+          insideDhakaFee={siteSettings.insideDhakaFee}
+          outsideDhakaFee={siteSettings.outsideDhakaFee}
+          defaultCountry={siteSettings.defaultCountry}
+          shippingLocations={siteSettings.shippingLocations}
+        />
       )}
     </main>
   );

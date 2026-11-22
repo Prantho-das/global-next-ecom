@@ -20,10 +20,10 @@ export default async function AdminCategoriesPage() {
   const categories = await getCategoriesTreeCached();
 
   return (
-    <section aria-labelledby="categories-heading">
-      <h1 id="categories-heading" style={{ fontSize: "1.75rem", marginTop: 0 }}>
+    <section aria-labelledby="categories-heading" className="space-y-4">
+      <h2 id="categories-heading" className="sr-only">
         Categories
-      </h1>
+      </h2>
       <CategoriesManager initialCategories={categories} />
     </section>
   );

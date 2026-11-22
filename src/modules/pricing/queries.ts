@@ -62,6 +62,7 @@ export async function getActivePricingContext(now: Date = new Date()): Promise<{
         name: specialDays.name,
         startsAt: specialDays.startsAt,
         endsAt: specialDays.endsAt,
+        banner: specialDays.banner,
         ruleId: specialDays.ruleId,
       })
       .from(specialDays)
@@ -110,6 +111,7 @@ export async function getActivePricingContext(now: Date = new Date()): Promise<{
       name: sd.name,
       startsAt: sd.startsAt,
       endsAt: sd.endsAt,
+      banner: sd.banner,
       discountType: rule.discountType as DiscountType,
       value: rule.value,
       maxDiscount: rule.maxDiscount,
@@ -156,12 +158,12 @@ export async function getCouponInputByCode(
       .from(couponTargets)
       .where(eq(couponTargets.couponId, coupon.id)),
     db
-      .select({ count: sql<number>`count(*)::int` })
+      .select({ count: sql<number>`CAST(COUNT(*) AS SIGNED)` })
       .from(couponRedemptions)
       .where(eq(couponRedemptions.couponId, coupon.id)),
     userId !== null
       ? db
-          .select({ count: sql<number>`count(*)::int` })
+          .select({ count: sql<number>`CAST(COUNT(*) AS SIGNED)` })
           .from(couponRedemptions)
           .where(
             and(

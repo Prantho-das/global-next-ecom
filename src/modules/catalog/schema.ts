@@ -1,14 +1,15 @@
-import { relations, sql } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 import {
   boolean,
   index,
-  integer,
-  jsonb,
-  pgTable,
+  int,
+  json,
+  mysqlTable,
   text,
   timestamp,
   uniqueIndex,
-} from "drizzle-orm/pg-core";
+  varchar,
+} from "drizzle-orm/mysql-core";
 
 import { users } from "@/modules/rbac/schema";
 
@@ -18,48 +19,40 @@ export interface SeoMeta {
   ogImage?: string;
 }
 
-export const brands = pgTable(
+export const brands = mysqlTable(
   "brands",
   {
-    id: text("id").primaryKey(),
-    name: text("name").notNull(),
-    slug: text("slug").notNull(),
+    id: varchar("id", { length: 191 }).primaryKey(),
+    name: varchar("name", { length: 191 }).notNull(),
+    slug: varchar("slug", { length: 191 }).notNull(),
+    status: varchar("status", { length: 32 }).notNull().default("active"),
     logoUrl: text("logo_url"),
-    seo: jsonb("seo").$type<SeoMeta>(),
-    deletedAt: timestamp("deleted_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    seo: json("seo").$type<SeoMeta>(),
+    deletedAt: timestamp("deleted_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("brands_slug_idx").on(table.slug),
-    index("brands_active_idx")
-      .on(table.name)
-      .where(sql`${table.deletedAt} IS NULL`),
+    index("brands_active_idx").on(table.name),
   ],
 );
 
-export const categories = pgTable(
+export const categories = mysqlTable(
   "categories",
   {
-    id: text("id").primaryKey(),
-    parentId: text("parent_id"),
-    name: text("name").notNull(),
-    slug: text("slug").notNull(),
-    path: text("path").notNull(),
-    depth: integer("depth").notNull().default(0),
-    position: integer("position").notNull().default(0),
-    seo: jsonb("seo").$type<SeoMeta>(),
-    deletedAt: timestamp("deleted_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    id: varchar("id", { length: 191 }).primaryKey(),
+    parentId: varchar("parent_id", { length: 191 }),
+    name: varchar("name", { length: 191 }).notNull(),
+    slug: varchar("slug", { length: 191 }).notNull(),
+    status: varchar("status", { length: 32 }).notNull().default("active"),
+    path: varchar("path", { length: 191 }).notNull(),
+    depth: int("depth").notNull().default(0),
+    position: int("position").notNull().default(0),
+    seo: json("seo").$type<SeoMeta>(),
+    deletedAt: timestamp("deleted_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("categories_slug_idx").on(table.slug),
@@ -68,63 +61,54 @@ export const categories = pgTable(
   ],
 );
 
-export const products = pgTable(
+export const products = mysqlTable(
   "products",
   {
-    id: text("id").primaryKey(),
-    name: text("name").notNull(),
-    slug: text("slug").notNull(),
-    status: text("status").notNull().default("draft"),
-    brandId: text("brand_id").references(() => brands.id, {
+    id: varchar("id", { length: 191 }).primaryKey(),
+    name: varchar("name", { length: 191 }).notNull(),
+    slug: varchar("slug", { length: 191 }).notNull(),
+    status: varchar("status", { length: 64 }).notNull().default("draft"),
+    brandId: varchar("brand_id", { length: 191 }).references(() => brands.id, {
       onDelete: "set null",
     }),
-    description: text("description").notNull().default(""),
-    basePrice: integer("base_price").notNull().default(0),
-    salePrice: integer("sale_price"),
-    compareAtPrice: integer("compare_at_price"),
-    seo: jsonb("seo").$type<SeoMeta>(),
+    description: text("description")
+      .notNull()
+      .$defaultFn(() => ""),
+    basePrice: int("base_price").notNull().default(0),
+    salePrice: int("sale_price"),
+    compareAtPrice: int("compare_at_price"),
+    seo: json("seo").$type<SeoMeta>(),
     hasVariants: boolean("has_variants").notNull().default(false),
-    vendor: text("vendor"),
-    productType: text("product_type"),
-    tags: jsonb("tags").$type<string[]>().notNull().default([]),
-    deletedAt: timestamp("deleted_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
+    vendor: varchar("vendor", { length: 191 }),
+    productType: varchar("product_type", { length: 191 }),
+    tags: json("tags")
+      .$type<string[]>()
       .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+      .$defaultFn(() => []),
+    deletedAt: timestamp("deleted_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("products_slug_idx").on(table.slug),
     index("products_status_idx").on(table.status),
     index("products_brand_id_idx").on(table.brandId),
-    index("products_active_idx")
-      .on(table.createdAt)
-      .where(sql`${table.deletedAt} IS NULL`),
-    index("products_fts_idx").using(
-      "gin",
-      sql`to_tsvector('english', coalesce(${table.name}, '') || ' ' || coalesce(${table.description}, ''))`,
-    ),
+    index("products_active_idx").on(table.createdAt),
   ],
 );
 
-export const productCategories = pgTable(
+export const productCategories = mysqlTable(
   "product_categories",
   {
-    id: text("id").primaryKey(),
-    productId: text("product_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    productId: varchar("product_id", { length: 191 })
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
-    categoryId: text("category_id")
+    categoryId: varchar("category_id", { length: 191 })
       .notNull()
       .references(() => categories.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("product_categories_pair_idx").on(
@@ -135,76 +119,70 @@ export const productCategories = pgTable(
   ],
 );
 
-export const productImages = pgTable(
+export const productImages = mysqlTable(
   "product_images",
   {
-    id: text("id").primaryKey(),
-    productId: text("product_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    productId: varchar("product_id", { length: 191 })
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
     url: text("url").notNull(),
-    alt: text("alt").notNull().default(""),
-    position: integer("position").notNull().default(0),
-    variantIds: jsonb("variant_ids").$type<string[] | null>(),
-    createdAt: timestamp("created_at", { withTimezone: true })
+    alt: text("alt")
       .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+      .$defaultFn(() => ""),
+    position: int("position").notNull().default(0),
+    variantIds: json("variant_ids").$type<string[] | null>(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [index("product_images_product_idx").on(table.productId)],
 );
 
-export const productOptions = pgTable(
+export const productOptions = mysqlTable(
   "product_options",
   {
-    id: text("id").primaryKey(),
-    productId: text("product_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    productId: varchar("product_id", { length: 191 })
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
-    name: text("name").notNull(),
-    position: integer("position").notNull().default(0),
-    values: jsonb("values").$type<string[]>().notNull().default([]),
-    createdAt: timestamp("created_at", { withTimezone: true })
+    name: varchar("name", { length: 191 }).notNull(),
+    position: int("position").notNull().default(0),
+    values: json("values")
+      .$type<string[]>()
       .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+      .$defaultFn(() => []),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [index("product_options_product_idx").on(table.productId)],
 );
 
-export const variants = pgTable(
+export const variants = mysqlTable(
   "variants",
   {
-    id: text("id").primaryKey(),
-    productId: text("product_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    productId: varchar("product_id", { length: 191 })
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
-    sku: text("sku").notNull(),
-    price: integer("price").notNull().default(0),
-    compareAtPrice: integer("compare_at_price"),
-    costPrice: integer("cost_price"),
-    stock: integer("stock").notNull().default(0),
-    weightG: integer("weight_g").notNull().default(0),
-    barcode: text("barcode"),
-    optionValues: jsonb("option_values")
+    sku: varchar("sku", { length: 191 }).notNull(),
+    price: int("price").notNull().default(0),
+    compareAtPrice: int("compare_at_price"),
+    costPrice: int("cost_price"),
+    stock: int("stock").notNull().default(0),
+    weightG: int("weight_g").notNull().default(0),
+    barcode: varchar("barcode", { length: 191 }),
+    optionValues: json("option_values")
       .$type<Record<string, string>>()
       .notNull()
-      .default({}),
-    imageId: text("image_id").references(() => productImages.id, {
-      onDelete: "set null",
-    }),
+      .$defaultFn(() => ({})),
+    imageId: varchar("image_id", { length: 191 }).references(
+      () => productImages.id,
+      { onDelete: "set null" },
+    ),
     isDefault: boolean("is_default").notNull().default(false),
-    deletedAt: timestamp("deleted_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    deletedAt: timestamp("deleted_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("variants_sku_idx").on(table.sku),
@@ -212,51 +190,47 @@ export const variants = pgTable(
   ],
 );
 
-export const stockMovements = pgTable(
+export const stockMovements = mysqlTable(
   "stock_movements",
   {
-    id: text("id").primaryKey(),
-    variantId: text("variant_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    variantId: varchar("variant_id", { length: 191 })
       .notNull()
       .references(() => variants.id, { onDelete: "cascade" }),
-    delta: integer("delta").notNull(),
-    reason: text("reason").notNull(),
-    refType: text("ref_type").notNull(),
-    refId: text("ref_id").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    delta: int("delta").notNull(),
+    reason: varchar("reason", { length: 191 }).notNull(),
+    refType: varchar("ref_type", { length: 191 }).notNull(),
+    refId: varchar("ref_id", { length: 191 }).notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [
     index("stock_movements_variant_idx").on(table.variantId, table.createdAt),
   ],
 );
 
-export const reviews = pgTable(
+export const reviews = mysqlTable(
   "reviews",
   {
-    id: text("id").primaryKey(),
-    productId: text("product_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    productId: varchar("product_id", { length: 191 })
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
-    userId: text("user_id").references(() => users.id, {
+    userId: varchar("user_id", { length: 191 }).references(() => users.id, {
       onDelete: "set null",
     }),
-    customerId: text("customer_id"),
-    rating: integer("rating").notNull(),
-    title: text("title").notNull().default(""),
-    body: text("body").notNull().default(""),
+    customerId: varchar("customer_id", { length: 191 }),
+    rating: int("rating").notNull(),
+    title: text("title")
+      .notNull()
+      .$defaultFn(() => ""),
+    body: text("body")
+      .notNull()
+      .$defaultFn(() => ""),
     isVerified: boolean("is_verified").notNull().default(false),
-    status: text("status").notNull().default("pending"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    status: varchar("status", { length: 64 }).notNull().default("pending"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [
     index("reviews_product_status_idx").on(table.productId, table.status),
@@ -314,6 +288,43 @@ export const variantsRelations = relations(variants, ({ one, many }) => ({
   }),
   stockMovements: many(stockMovements),
 }));
+
+export const purchaseOrders = mysqlTable(
+  "purchase_orders",
+  {
+    id: varchar("id", { length: 191 }).primaryKey(),
+    poNumber: varchar("po_number", { length: 64 }).notNull(),
+    supplierName: varchar("supplier_name", { length: 191 }).notNull(),
+    supplierPhone: varchar("supplier_phone", { length: 64 }),
+    status: varchar("status", { length: 32 }).notNull().default("received"),
+    totalCost: int("total_cost").notNull().default(0),
+    note: text("note"),
+    receivedAt: timestamp("received_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("purchase_orders_number_idx").on(table.poNumber)],
+);
+
+export const purchaseOrderItems = mysqlTable(
+  "purchase_order_items",
+  {
+    id: varchar("id", { length: 191 }).primaryKey(),
+    purchaseOrderId: varchar("purchase_order_id", { length: 191 })
+      .notNull()
+      .references(() => purchaseOrders.id, { onDelete: "cascade" }),
+    variantId: varchar("variant_id", { length: 191 })
+      .notNull()
+      .references(() => variants.id, { onDelete: "restrict" }),
+    qty: int("qty").notNull(),
+    unitCost: int("unit_cost").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("purchase_order_items_po_idx").on(table.purchaseOrderId),
+  ],
+);
 
 export const stockMovementsRelations = relations(stockMovements, ({ one }) => ({
   variant: one(variants, {

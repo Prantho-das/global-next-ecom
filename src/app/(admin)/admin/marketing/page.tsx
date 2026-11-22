@@ -42,76 +42,92 @@ export default async function AdminMarketingPage() {
     ]);
 
   return (
-    <section aria-labelledby="marketing-heading">
-      <h1 id="marketing-heading" style={{ fontSize: "1.75rem", marginTop: 0 }}>
+    <section aria-labelledby="marketing-heading" className="space-y-4">
+      <h2 id="marketing-heading" className="sr-only">
         Marketing, Segments &amp; Feeds
-      </h1>
-      <div className="row">
-        <div className="col s12 m4">
-          <div className="card white">
-            <div className="card-content">
-              <span className="card-title">Segments ({segmentRows.length})</span>
-              <p className="grey-text">
-                {segmentRows.map((s) => s.name).join(", ") || "None"}
-              </p>
-            </div>
+      </h2>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white border border-slate-200/80 rounded p-4 shadow-sm space-y-2">
+          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            Segments ({segmentRows.length})
           </div>
+          <p className="text-sm text-slate-700 m-0">
+            {segmentRows.map((s) => s.name).join(", ") || "None"}
+          </p>
         </div>
-        <div className="col s12 m4">
-          <div className="card white">
-            <div className="card-content">
-              <span className="card-title">
-                Campaigns ({campaignRows.length})
-              </span>
-              <p className="grey-text">
-                Referrals: {referralRows.length} | Tracking Events:{" "}
-                {eventRows.length}
-              </p>
-            </div>
+
+        <div className="bg-white border border-slate-200/80 rounded p-4 shadow-sm space-y-2">
+          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            Campaigns ({campaignRows.length})
           </div>
+          <p className="text-sm text-slate-700 m-0">
+            Referrals: {referralRows.length} | Tracking Events:{" "}
+            {eventRows.length}
+          </p>
         </div>
-        <div className="col s12 m4">
-          <div className="card white">
-            <div className="card-content">
-              <span className="card-title">Product Feeds</span>
-              <p>
-                <a href="/api/feeds/google-merchant.xml">Google Merchant XML</a>
-                <br />
-                <a href="/api/feeds/facebook-catalog.csv">
-                  Facebook Catalog CSV
-                </a>
-              </p>
-            </div>
+
+        <div className="bg-white border border-slate-200/80 rounded p-4 shadow-sm space-y-2">
+          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            Product Feeds
+          </div>
+          <div className="flex flex-col gap-1.5 text-sm font-medium">
+            <a
+              href="/api/feeds/google-merchant.xml"
+              className="text-indigo-600 hover:underline inline-flex items-center gap-1.5"
+            >
+              <i className="ti ti-file-code" />
+              <span>Google Merchant XML</span>
+            </a>
+            <a
+              href="/api/feeds/facebook-catalog.csv"
+              className="text-indigo-600 hover:underline inline-flex items-center gap-1.5"
+            >
+              <i className="ti ti-file-spreadsheet" />
+              <span>Facebook Catalog CSV</span>
+            </a>
           </div>
         </div>
       </div>
 
-      <div className="card white">
-        <div className="card-content">
-          <span className="card-title">
+      <div className="bg-white border border-slate-200/80 rounded shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-slate-200/80">
+          <h3 className="text-base font-bold text-slate-900 m-0">
             Abandoned Cart Logs ({abandonRows.length})
-          </span>
-          <table className="striped">
-            <thead>
-              <tr>
-                <th>Cart ID</th>
-                <th>Stage</th>
-                <th>Coupon</th>
-                <th>Opted Out</th>
-              </tr>
-            </thead>
-            <tbody>
-              {abandonRows.map((a) => (
-                <tr key={a.id}>
-                  <td>{a.cartId}</td>
-                  <td>{a.stage}</td>
-                  <td>{a.couponCode ?? "—"}</td>
-                  <td>{a.optedOut ? "Yes" : "No"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          </h3>
         </div>
+        {abandonRows.length === 0 ? (
+          <div className="py-10 text-center text-slate-400 text-sm">
+            No abandoned cart logs yet.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">
+                <tr>
+                  <th className="py-2.5 px-4">Cart ID</th>
+                  <th className="py-2.5 px-4">Stage</th>
+                  <th className="py-2.5 px-4">Coupon</th>
+                  <th className="py-2.5 px-4 text-right">Opted Out</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
+                {abandonRows.map((a) => (
+                  <tr key={a.id} className="hover:bg-slate-50/70">
+                    <td className="py-2.5 px-4 font-mono text-xs text-indigo-600">
+                      {a.cartId}
+                    </td>
+                    <td className="py-2.5 px-4">{a.stage}</td>
+                    <td className="py-2.5 px-4">{a.couponCode ?? "—"}</td>
+                    <td className="py-2.5 px-4 text-right">
+                      {a.optedOut ? "Yes" : "No"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </section>
   );

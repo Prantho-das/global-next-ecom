@@ -19,6 +19,7 @@ export const brandInputSchema = z.object({
   id: z.string().min(1).optional(),
   name: z.string().trim().min(1, "Brand name is required").max(120),
   slug: z.string().trim().max(140).optional(),
+  status: z.enum(["active", "inactive"]).default("active"),
   logoUrl: z.string().trim().max(500).nullable().optional(),
   seo: seoMetaSchema.optional(),
 });
@@ -32,6 +33,7 @@ export const categoryInputSchema = z.object({
   parentId: z.string().min(1).nullable().optional(),
   name: z.string().trim().min(1, "Category name is required").max(120),
   slug: z.string().trim().max(140).optional(),
+  status: z.enum(["active", "inactive"]).default("active"),
   position: z.number().int().min(0).default(0),
   seo: seoMetaSchema.optional(),
 });

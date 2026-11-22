@@ -4,10 +4,11 @@ import { redirect } from "next/navigation";
 import { ShippingManager } from "@/components/admin/shipping-manager";
 import { getSession } from "@/lib/auth";
 import { checkPermission } from "@/lib/guard";
+import { getSiteSettings } from "@/modules/settings/queries";
 import { getAllShippingConfig } from "@/modules/shipping/queries";
 
 export const metadata: Metadata = {
-  title: "Shipping Zones | Admin",
+  title: "Shipping | Admin",
 };
 
 export default async function AdminShippingPage() {
@@ -17,18 +18,25 @@ export default async function AdminShippingPage() {
     redirect("/admin");
   }
 
-  const cfg = await getAllShippingConfig();
+  const [cfg, siteSettings] = await Promise.all([
+    getAllShippingConfig(),
+    getSiteSettings(),
+  ]);
 
   return (
-    <section aria-labelledby="shipping-heading">
-      <h1 id="shipping-heading" style={{ fontSize: "1.75rem", marginTop: 0 }}>
-        Shipping Zones &amp; Rates
-      </h1>
+    <section aria-labelledby="shipping-heading" className="space-y-4">
+      <h2 id="shipping-heading" className="sr-only">
+        Shipping Locations &amp; Rates
+      </h2>
       <ShippingManager
-        zones={cfg.zones}
-        areas={cfg.areas}
-        rates={cfg.rates}
+        section="settings"
         globalThreshold={cfg.settings?.freeShippingGlobalThreshold ?? null}
+        initialCountries={siteSettings.shippingCountries}
+        initialStates={siteSettings.shippingStates}
+        initialLocations={siteSettings.shippingLocations}
+        initialMode={siteSettings.shippingMode}
+        initialInsideFee={siteSettings.insideDhakaFee}
+        initialOutsideFee={siteSettings.outsideDhakaFee}
       />
     </section>
   );

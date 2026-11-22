@@ -1,4 +1,3 @@
-import "@materializecss/materialize/dist/css/materialize.min.css";
 import "./globals.css";
 
 import type { Metadata } from "next";

@@ -26,10 +26,13 @@ export default async function NewProductPage() {
   ]);
 
   return (
-    <section aria-labelledby="new-product-heading">
-      <h1 id="new-product-heading" style={{ fontSize: "1.75rem", marginTop: 0 }}>
-        New Product
-      </h1>
+    <section aria-labelledby="new-product-heading" className="space-y-4">
+      <h2
+        id="new-product-heading"
+        className="text-lg font-bold text-slate-900 m-0"
+      >
+        Create New Product
+      </h2>
       <ProductForm brands={brands} categories={categories} />
     </section>
   );

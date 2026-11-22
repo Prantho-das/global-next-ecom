@@ -1,29 +1,26 @@
 import {
   boolean,
   index,
-  jsonb,
-  pgTable,
+  json,
+  mysqlTable,
   text,
   timestamp,
   uniqueIndex,
-} from "drizzle-orm/pg-core";
+  varchar,
+} from "drizzle-orm/mysql-core";
 
-export const users = pgTable(
+export const users = mysqlTable(
   "users",
   {
-    id: text("id").primaryKey(),
+    id: varchar("id", { length: 191 }).primaryKey(),
     name: text("name").notNull(),
-    email: text("email").notNull(),
+    email: varchar("email", { length: 191 }).notNull(),
     emailVerified: boolean("email_verified").notNull().default(false),
-    phone: text("phone"),
+    phone: varchar("phone", { length: 191 }),
     phoneVerified: boolean("phone_verified").notNull().default(false),
     image: text("image"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("users_email_idx").on(table.email),
@@ -31,23 +28,19 @@ export const users = pgTable(
   ],
 );
 
-export const sessions = pgTable(
+export const sessions = mysqlTable(
   "sessions",
   {
-    id: text("id").primaryKey(),
-    userId: text("user_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    userId: varchar("user_id", { length: 191 })
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    token: text("token").notNull(),
-    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    token: varchar("token", { length: 191 }).notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
     ipAddress: text("ip_address"),
     userAgent: text("user_agent"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("sessions_token_idx").on(table.token),
@@ -55,67 +48,51 @@ export const sessions = pgTable(
   ],
 );
 
-export const accounts = pgTable(
+export const accounts = mysqlTable(
   "accounts",
   {
-    id: text("id").primaryKey(),
-    userId: text("user_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    userId: varchar("user_id", { length: 191 })
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    accountId: text("account_id").notNull(),
-    providerId: text("provider_id").notNull(),
+    accountId: varchar("account_id", { length: 191 }).notNull(),
+    providerId: varchar("provider_id", { length: 191 }).notNull(),
     accessToken: text("access_token"),
     refreshToken: text("refresh_token"),
-    accessTokenExpiresAt: timestamp("access_token_expires_at", {
-      withTimezone: true,
-    }),
-    refreshTokenExpiresAt: timestamp("refresh_token_expires_at", {
-      withTimezone: true,
-    }),
+    accessTokenExpiresAt: timestamp("access_token_expires_at"),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
     scope: text("scope"),
     idToken: text("id_token"),
     password: text("password"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [index("accounts_user_id_idx").on(table.userId)],
 );
 
-export const verifications = pgTable(
+export const verifications = mysqlTable(
   "verifications",
   {
-    id: text("id").primaryKey(),
-    identifier: text("identifier").notNull(),
+    id: varchar("id", { length: 191 }).primaryKey(),
+    identifier: varchar("identifier", { length: 191 }).notNull(),
     value: text("value").notNull(),
-    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [index("verifications_identifier_idx").on(table.identifier)],
 );
 
-export const roles = pgTable(
+export const roles = mysqlTable(
   "roles",
   {
-    id: text("id").primaryKey(),
-    name: text("name").notNull(),
-    slug: text("slug").notNull(),
+    id: varchar("id", { length: 191 }).primaryKey(),
+    name: varchar("name", { length: 191 }).notNull(),
+    slug: varchar("slug", { length: 191 }).notNull(),
     description: text("description"),
     isSystem: boolean("is_system").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("roles_name_idx").on(table.name),
@@ -123,20 +100,16 @@ export const roles = pgTable(
   ],
 );
 
-export const permissions = pgTable(
+export const permissions = mysqlTable(
   "permissions",
   {
-    id: text("id").primaryKey(),
-    resource: text("resource").notNull(),
-    action: text("action").notNull(),
-    key: text("key").notNull(),
+    id: varchar("id", { length: 191 }).primaryKey(),
+    resource: varchar("resource", { length: 191 }).notNull(),
+    action: varchar("action", { length: 191 }).notNull(),
+    key: varchar("key", { length: 191 }).notNull(),
     description: text("description"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("permissions_key_idx").on(table.key),
@@ -144,22 +117,18 @@ export const permissions = pgTable(
   ],
 );
 
-export const rolePermissions = pgTable(
+export const rolePermissions = mysqlTable(
   "role_permissions",
   {
-    id: text("id").primaryKey(),
-    roleId: text("role_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    roleId: varchar("role_id", { length: 191 })
       .notNull()
       .references(() => roles.id, { onDelete: "cascade" }),
-    permissionId: text("permission_id")
+    permissionId: varchar("permission_id", { length: 191 })
       .notNull()
       .references(() => permissions.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("role_permissions_pair_idx").on(
@@ -170,22 +139,18 @@ export const rolePermissions = pgTable(
   ],
 );
 
-export const userRoles = pgTable(
+export const userRoles = mysqlTable(
   "user_roles",
   {
-    id: text("id").primaryKey(),
-    userId: text("user_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    userId: varchar("user_id", { length: 191 })
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    roleId: text("role_id")
+    roleId: varchar("role_id", { length: 191 })
       .notNull()
       .references(() => roles.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("user_roles_pair_idx").on(table.userId, table.roleId),
@@ -193,24 +158,20 @@ export const userRoles = pgTable(
   ],
 );
 
-export const auditLogs = pgTable(
+export const auditLogs = mysqlTable(
   "audit_logs",
   {
-    id: text("id").primaryKey(),
-    actorId: text("actor_id").references(() => users.id, {
+    id: varchar("id", { length: 191 }).primaryKey(),
+    actorId: varchar("actor_id", { length: 191 }).references(() => users.id, {
       onDelete: "set null",
     }),
-    action: text("action").notNull(),
-    entity: text("entity").notNull(),
-    entityId: text("entity_id").notNull(),
-    diff: jsonb("diff").$type<Record<string, unknown>>(),
+    action: varchar("action", { length: 191 }).notNull(),
+    entity: varchar("entity", { length: 191 }).notNull(),
+    entityId: varchar("entity_id", { length: 191 }).notNull(),
+    diff: json("diff").$type<Record<string, unknown>>(),
     ip: text("ip"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [
     index("audit_logs_actor_id_idx").on(table.actorId),

@@ -1,56 +1,49 @@
 import {
   boolean,
   index,
-  integer,
-  pgTable,
+  int,
+  mysqlTable,
   text,
   timestamp,
   uniqueIndex,
-} from "drizzle-orm/pg-core";
+  varchar,
+} from "drizzle-orm/mysql-core";
 
 import { orders, payments } from "@/modules/sales/schema";
 
-export const paymentProviders = pgTable(
+export const paymentProviders = mysqlTable(
   "payment_providers",
   {
-    id: text("id").primaryKey(),
-    code: text("code").notNull(),
-    name: text("name").notNull(),
+    id: varchar("id", { length: 191 }).primaryKey(),
+    code: varchar("code", { length: 64 }).notNull(),
+    name: varchar("name", { length: 191 }).notNull(),
     configEnc: text("config_enc").notNull(),
     isActive: boolean("is_active").notNull().default(false),
-    position: integer("position").notNull().default(0),
+    position: int("position").notNull().default(0),
     sandboxMode: boolean("sandbox_mode").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [uniqueIndex("payment_providers_code_idx").on(table.code)],
 );
 
-export const refunds = pgTable(
+export const refunds = mysqlTable(
   "refunds",
   {
-    id: text("id").primaryKey(),
-    paymentId: text("payment_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    paymentId: varchar("payment_id", { length: 191 })
       .notNull()
       .references(() => payments.id, { onDelete: "cascade" }),
-    orderId: text("order_id")
+    orderId: varchar("order_id", { length: 191 })
       .notNull()
       .references(() => orders.id, { onDelete: "cascade" }),
-    amount: integer("amount").notNull(),
+    amount: int("amount").notNull(),
     reason: text("reason").notNull(),
-    status: text("status").notNull().default("pending"),
-    gatewayRefundId: text("gateway_refund_id"),
-    processedAt: timestamp("processed_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    status: varchar("status", { length: 64 }).notNull().default("pending"),
+    gatewayRefundId: varchar("gateway_refund_id", { length: 191 }),
+    processedAt: timestamp("processed_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [
     index("refunds_payment_idx").on(table.paymentId),

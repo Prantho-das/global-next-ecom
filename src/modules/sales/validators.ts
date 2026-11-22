@@ -26,6 +26,7 @@ export const otpRequestSchema = z.object({
 export const checkoutSchema = z.object({
   phone: bdPhoneSchema,
   name: z.string().trim().min(2, "Name is required").max(120),
+  country: z.string().trim().min(2).max(60).optional(),
   division: z.string().trim().min(2, "Division is required").max(60),
   district: z.string().trim().min(2, "District is required").max(60),
   thana: z.string().trim().min(2, "Thana is required").max(60),

@@ -31,6 +31,7 @@ export interface ActiveSpecialDayInput {
   name: string;
   startsAt: Date;
   endsAt: Date;
+  banner?: string | null;
   discountType: DiscountType;
   value: number;
   maxDiscount: number | null;

@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const SESSION_COOKIE_NAMES = [
-  "better-auth.session_token",
-  "__Secure-better-auth.session_token",
+  "ecom.session-token",
+  "__Secure-ecom.session-token",
 ];
 
 function hasSessionCookie(req: NextRequest): boolean {

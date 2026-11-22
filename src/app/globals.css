@@ -1,70 +1,34 @@
-:root {
-  --admin-sidebar-width: 250px;
-}
+@import "tailwindcss";
+@import "@tabler/icons-webfont/dist/tabler-icons.min.css";
 
 body {
   margin: 0;
-  background-color: #f5f6fa;
-  color: #1f2937;
+  background-color: #f1f5f9;
+  color: #334155;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
 }
 
-.admin-layout {
-  display: flex;
-  min-height: 100vh;
-}
-
-.admin-sidebar {
-  width: var(--admin-sidebar-width);
-  flex-shrink: 0;
-  background-color: #1e293b;
-  color: #f8fafc;
-}
-
-.admin-sidebar a {
-  color: #e2e8f0;
-  display: block;
-  padding: 12px 20px;
-  text-decoration: none;
-}
-
-.admin-sidebar a:hover,
-.admin-sidebar a:focus-visible {
-  background-color: #334155;
-  color: #ffffff;
-}
-
-.admin-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.admin-topbar {
-  background-color: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
-  padding: 0 24px;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.admin-content {
-  padding: 24px;
-  flex: 1;
-}
-
-@media (max-width: 992px) {
-  .admin-sidebar {
-    display: none;
+@layer base {
+  a[href],
+  button,
+  [role="button"],
+  summary,
+  select,
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  input[type="checkbox"],
+  input[type="radio"],
+  label:has(input[type="checkbox"]),
+  label:has(input[type="radio"]) {
+    cursor: pointer;
   }
-  .admin-sidebar.is-open {
-    display: block;
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    z-index: 1000;
+
+  button:disabled,
+  input:disabled,
+  select:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
   }
 }

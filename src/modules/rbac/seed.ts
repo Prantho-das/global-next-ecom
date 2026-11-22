@@ -29,10 +29,7 @@ export async function seedRbac(db: DbClient = getDb()): Promise<{
     };
   });
 
-  await db
-    .insert(permissions)
-    .values(permissionValues)
-    .onConflictDoNothing({ target: permissions.key });
+  await db.insert(permissions).ignore().values(permissionValues);
 
   const existingPerms = await db
     .select({ id: permissions.id, key: permissions.key })
@@ -47,10 +44,7 @@ export async function seedRbac(db: DbClient = getDb()): Promise<{
     isSystem: role.isSystem,
   }));
 
-  await db
-    .insert(roles)
-    .values(roleValues)
-    .onConflictDoNothing({ target: roles.slug });
+  await db.insert(roles).ignore().values(roleValues);
 
   const existingRoles = await db
     .select({ id: roles.id, slug: roles.slug })
@@ -82,12 +76,7 @@ export async function seedRbac(db: DbClient = getDb()): Promise<{
   }
 
   if (mappingValues.length > 0) {
-    await db
-      .insert(rolePermissions)
-      .values(mappingValues)
-      .onConflictDoNothing({
-        target: [rolePermissions.roleId, rolePermissions.permissionId],
-      });
+    await db.insert(rolePermissions).ignore().values(mappingValues);
   }
 
   return {

@@ -1,13 +1,14 @@
 import {
   boolean,
   index,
-  integer,
-  jsonb,
-  pgTable,
+  int,
+  json,
+  mysqlTable,
   text,
   timestamp,
   uniqueIndex,
-} from "drizzle-orm/pg-core";
+  varchar,
+} from "drizzle-orm/mysql-core";
 
 import { orders } from "@/modules/sales/schema";
 
@@ -18,76 +19,63 @@ export interface FraudSignalResult {
   reason: string;
 }
 
-export const fraudRules = pgTable(
+export const fraudRules = mysqlTable(
   "fraud_rules",
   {
-    id: text("id").primaryKey(),
-    key: text("key").notNull(),
-    weight: integer("weight").notNull(),
+    id: varchar("id", { length: 191 }).primaryKey(),
+    key: varchar("key", { length: 191 }).notNull(),
+    weight: int("weight").notNull(),
     enabled: boolean("enabled").notNull().default(true),
-    config: jsonb("config").$type<Record<string, unknown>>(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    config: json("config").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [uniqueIndex("fraud_rules_key_idx").on(table.key)],
 );
 
-export const fraudChecks = pgTable(
+export const fraudChecks = mysqlTable(
   "fraud_checks",
   {
-    id: text("id").primaryKey(),
-    orderId: text("order_id")
+    id: varchar("id", { length: 191 }).primaryKey(),
+    orderId: varchar("order_id", { length: 191 })
       .notNull()
       .references(() => orders.id, { onDelete: "cascade" }),
-    score: integer("score").notNull(),
-    signals: jsonb("signals").$type<FraudSignalResult[]>().notNull().default([]),
-    decision: text("decision").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
+    score: int("score").notNull(),
+    signals: json("signals")
+      .$type<FraudSignalResult[]>()
       .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+      .$defaultFn(() => []),
+    decision: varchar("decision", { length: 64 }).notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [index("fraud_checks_order_idx").on(table.orderId)],
 );
 
-export const blacklist = pgTable(
+export const blacklist = mysqlTable(
   "blacklist",
   {
-    id: text("id").primaryKey(),
-    type: text("type").notNull(),
-    value: text("value").notNull(),
+    id: varchar("id", { length: 191 }).primaryKey(),
+    type: varchar("type", { length: 64 }).notNull(),
+    value: varchar("value", { length: 191 }).notNull(),
     reason: text("reason").notNull(),
-    expiresAt: timestamp("expires_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    expiresAt: timestamp("expires_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [index("blacklist_type_value_idx").on(table.type, table.value)],
 );
 
-export const customerCourierStats = pgTable(
+export const customerCourierStats = mysqlTable(
   "customer_courier_stats",
   {
-    id: text("id").primaryKey(),
-    phone: text("phone").notNull(),
-    delivered: integer("delivered").notNull().default(0),
-    returned: integer("returned").notNull().default(0),
-    cancelled: integer("cancelled").notNull().default(0),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    id: varchar("id", { length: 191 }).primaryKey(),
+    phone: varchar("phone", { length: 191 }).notNull(),
+    delivered: int("delivered").notNull().default(0),
+    returned: int("returned").notNull().default(0),
+    cancelled: int("cancelled").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [uniqueIndex("customer_courier_stats_phone_idx").on(table.phone)],
 );

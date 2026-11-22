@@ -141,8 +141,7 @@ export const upsertCourierProviderAction = createAction({
         configEnc,
         status: input.status ?? "active",
       })
-      .onConflictDoUpdate({
-        target: courierProviders.code,
+      .onDuplicateKeyUpdate({
         set: {
           configEnc,
           status: input.status ?? "active",

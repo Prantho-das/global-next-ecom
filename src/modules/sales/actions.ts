@@ -7,7 +7,7 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 
 import { createAction } from "@/lib/action";
-import { getAuth } from "@/lib/auth";
+import { createCredentialsUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import {
@@ -18,6 +18,7 @@ import {
 } from "@/modules/auth/otp-service";
 import { products, productCategories, stockMovements, variants } from "@/modules/catalog/schema";
 import { emitNotification } from "@/modules/notify/bus";
+import { sendServerConversionEvent } from "@/modules/marketing/capi";
 import {
   getActivePricingContext,
   getCouponInputByCode,
@@ -27,6 +28,7 @@ import { calculatePriceBreakdown } from "@/modules/pricing/service";
 import type { PricingLineInput } from "@/modules/pricing/types";
 import { getAllShippingConfig } from "@/modules/shipping/queries";
 import { matchShippingRates } from "@/modules/shipping/service";
+import { getSiteSettings } from "@/modules/settings/queries";
 import {
   cartItems,
   carts,
@@ -105,7 +107,7 @@ export const addToCartAction = createAction({
     const db = getDb();
     const cartId = await resolveActiveCartId(ctx.userId);
     const variantRows = await db
-      .select({ id: variants.id, stock: variants.stock })
+      .select({ id: variants.id, stock: variants.stock, price: variants.price })
       .from(variants)
       .where(and(eq(variants.id, input.variantId), isNull(variants.deletedAt)))
       .limit(1);
@@ -142,6 +144,13 @@ export const addToCartAction = createAction({
       .update(carts)
       .set({ lastActivityAt: new Date(), updatedAt: new Date() })
       .where(eq(carts.id, cartId));
+
+    void sendServerConversionEvent({
+      eventName: "AddToCart",
+      contentIds: [variant.id],
+      numItems: nextQty,
+      valueMajor: (variant.price * nextQty) / 100,
+    });
 
     return { cartId, variantId: variant.id, qty: nextQty };
   },
@@ -319,12 +328,13 @@ export const placeCodOrderAction = createAction({
         });
       }
 
-      const [pricingCtx, couponInput, shippingCfg] = await Promise.all([
+      const [pricingCtx, couponInput, shippingCfg, siteSettings] = await Promise.all([
         getActivePricingContext(),
         input.couponCode !== undefined && input.couponCode !== ""
           ? getCouponInputByCode(input.couponCode, ctx.userId)
           : Promise.resolve(null),
         getAllShippingConfig(),
+        getSiteSettings(),
       ]);
 
       if (
@@ -448,8 +458,30 @@ export const placeCodOrderAction = createAction({
               globalFreeThreshold:
                 shippingCfg.settings?.freeShippingGlobalThreshold ?? null,
             });
+            const isInsideDhaka =
+              input.district.trim().toLowerCase() === "dhaka";
+            const simpleShippingFee =
+              (isInsideDhaka
+                ? siteSettings.insideDhakaFee
+                : siteSettings.outsideDhakaFee) * 100;
+            const matchedLoc = (siteSettings.shippingLocations ?? []).find(
+              (loc) =>
+                loc.country.trim().toLowerCase() ===
+                  (input.country ?? siteSettings.defaultCountry)
+                    .trim()
+                    .toLowerCase() &&
+                loc.state.trim().toLowerCase() ===
+                  input.division.trim().toLowerCase() &&
+                loc.area.trim().toLowerCase() ===
+                  input.district.trim().toLowerCase(),
+            );
             const selectedShippingFee =
-              matchedShipping.options[0]?.price ?? DEFAULT_FLAT_SHIPPING_POISHA;
+              siteSettings.shippingMode === "simple"
+                ? simpleShippingFee
+                : matchedLoc !== undefined
+                  ? Math.round(matchedLoc.cost * 100)
+                  : (matchedShipping.options[0]?.price ??
+                    siteSettings.outsideDhakaFee * 100);
 
             const breakdown = calculatePriceBreakdown({
               lines: pricingLines,
@@ -542,6 +574,24 @@ export const placeCodOrderAction = createAction({
             total: result.total,
           },
         });
+        void sendServerConversionEvent(
+          {
+            eventName: "Purchase",
+            eventId: input.idempotencyKey,
+            orderId: result.orderNumber,
+            valueMajor: result.total / 100,
+            numItems: cartLines.reduce((sum, l) => sum + l.qty, 0),
+            contentIds: cartLines.map((l) => l.variantId),
+            userData: {
+              phone: normalizedPhone,
+              firstName: input.name,
+              city: input.district,
+              state: input.division,
+              country: input.country ?? siteSettings.defaultCountry,
+            },
+          },
+          siteSettings,
+        );
       }
 
       return result;
@@ -639,26 +689,20 @@ export const convertGuestToAccountAction = createAction({
       throw new AppError("NOT_FOUND", "Customer record not found");
     }
 
-    const auth = getAuth();
-    const signUpRes = await auth.api.signUpEmail({
-      body: {
-        name: customer.name,
-        email: input.email,
-        password: input.password,
-      },
+    const created = await createCredentialsUser({
+      name: customer.name,
+      email: input.email,
+      password: input.password,
     });
-    const newUserId = signUpRes?.user?.id;
-    if (newUserId !== undefined) {
-      await db
-        .update(customers)
-        .set({
-          userId: newUserId,
-          email: input.email,
-          isGuest: false,
-          updatedAt: new Date(),
-        })
-        .where(eq(customers.id, customer.id));
-    }
+    await db
+      .update(customers)
+      .set({
+        userId: created.id,
+        email: created.email,
+        isGuest: false,
+        updatedAt: new Date(),
+      })
+      .where(eq(customers.id, customer.id));
     return { converted: true, email: input.email };
   },
 });
