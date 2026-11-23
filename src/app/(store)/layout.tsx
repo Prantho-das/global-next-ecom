@@ -5,6 +5,7 @@ import { CartDrawer } from "@/components/store/cart-drawer";
 import { MobileBottomNav } from "@/components/store/mobile-bottom-nav";
 import { StoreFooter } from "@/components/store/store-footer";
 import { StoreHeader } from "@/components/store/store-header";
+import { StoreSidebar } from "@/components/store/store-sidebar";
 import { TrackingPixels } from "@/components/store/tracking-pixels";
 import { getSession } from "@/lib/auth";
 import { getCategoriesTreeCached } from "@/modules/catalog/queries";
@@ -66,7 +67,7 @@ export default async function StoreLayout({
   }));
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f8fafc] text-slate-800 font-sans selection:bg-[#5F9118] selection:text-white">
+    <div className="min-h-screen flex flex-col bg-[#FBFDFB] text-[#0F2920] font-sans antialiased selection:bg-[#E8B65D] selection:text-[#0F2920] w-full">
       <StoreHeader
         siteName={settings.siteName}
         announcement={topBannerText}
@@ -74,9 +75,13 @@ export default async function StoreLayout({
         categories={headerCategories}
       />
 
-      <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
-        {children}
-      </main>
+      <div className="w-full flex items-start flex-1 min-h-0">
+        <StoreSidebar />
+
+        <main className="flex-1 flex flex-col gap-4 sm:gap-6 min-w-0 overflow-x-hidden px-3 sm:px-4 lg:px-6 pt-4 sm:pt-5 lg:pt-6 pb-12">
+          {children}
+        </main>
+      </div>
 
       <StoreFooter />
 

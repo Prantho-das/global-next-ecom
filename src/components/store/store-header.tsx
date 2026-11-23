@@ -53,7 +53,7 @@ export function StoreHeader({
   return (
     <>
       <aside className="bg-[#F8DE9E] text-[#0F2920] py-1.5 px-3 sm:px-4 lg:px-6 text-xs font-medium border-b border-[#E8B65D]/40 z-40 relative w-full">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
+        <div className="w-full flex justify-between items-center">
           <div className="flex items-center gap-2">
             <span className="inline-block w-2 h-2 rounded-full bg-[#5F9118] animate-pulse" />
             <span className="truncate">
@@ -83,8 +83,25 @@ export function StoreHeader({
       </aside>
 
       <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md shadow-xs border-b border-slate-100 w-full">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 h-14 sm:h-16 flex items-center justify-between gap-4">
+        <div className="w-full px-3 sm:px-4 lg:px-6 h-14 sm:h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.dispatchEvent(
+                    new CustomEvent("toggle-mobile-sidebar", {
+                      detail: { open: true },
+                    }),
+                  );
+                }
+              }}
+              className="xl:hidden p-2 rounded-xl text-slate-700 hover:bg-slate-100 border border-slate-200 transition-all cursor-pointer"
+              aria-label="ক্যাটাগরি মেনু"
+            >
+              <Menu className="w-5 h-5 text-[#5F9118]" />
+            </button>
+
             <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group">
               <Image
                 src="/logo.png"
@@ -129,14 +146,6 @@ export function StoreHeader({
               aria-label="সার্চ অপশন"
             >
               <Search className="w-5 h-5 text-slate-700" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen(true)}
-              className="p-2 rounded-xl text-slate-700 hover:bg-slate-100 border border-slate-200 transition-all"
-              aria-label="ক্যাটাগরি মেনু"
-            >
-              <Menu className="w-5 h-5 text-[#5F9118]" />
             </button>
           </div>
 

@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import {
   Globe,
   HeartHandshake,
@@ -47,24 +49,24 @@ export function StoreTrustShowcase() {
   return (
     <section
       aria-labelledby="trust-showcase-title"
-      className="w-full bg-gradient-to-b from-[#EBF7EF] via-[#F4FAF6] to-[#E2F5E9] rounded-2xl border border-[#5F9118]/20 p-5 sm:p-8 lg:p-10 shadow-xs relative overflow-hidden my-8 font-sans"
+      className="w-full bg-gradient-to-b from-[#EBF7EF] via-[#F4FAF6] to-[#E2F5E9] rounded-2xl border border-[#5F9118]/20 p-4 sm:p-8 lg:p-10 shadow-xs relative overflow-hidden my-6 sm:my-8 font-sans"
     >
       <div
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 sm:w-[500px] h-72 sm:h-[500px] bg-white/50 rounded-full blur-3xl pointer-events-none"
         aria-hidden="true"
       />
 
-      <div className="relative z-10 text-center max-w-3xl mx-auto mb-8 sm:mb-12">
-        <span className="text-xs font-bold tracking-[0.2em] text-[#5F9118] uppercase inline-block mb-1.5">
+      <div className="relative z-10 text-center max-w-3xl mx-auto mb-6 sm:mb-10">
+        <span className="text-[10px] sm:text-xs font-bold tracking-[0.2em] text-[#5F9118] uppercase inline-block mb-1.5">
           অর্গানিক • শতভাগ খাঁটি • স্বাস্থ্যকর
         </span>
         <h2
           id="trust-showcase-title"
-          className="text-xl sm:text-3xl lg:text-4xl font-black text-[#0F2920] tracking-tight leading-snug sm:leading-tight"
+          className="text-lg sm:text-3xl lg:text-4xl font-extrabold text-[#0F2920] tracking-tight leading-snug sm:leading-tight"
         >
           বিশুদ্ধতার বিশ্বস্ত প্রতীক, সেরা মানে সেরা পছন্দ
         </h2>
-        <p className="text-xs sm:text-sm text-[#637381] mt-2.5 leading-relaxed">
+        <p className="text-xs sm:text-sm text-[#475569] mt-2 sm:mt-3 leading-relaxed">
           BASA World-এ আমরা আপনার ও আপনার পরিবারের জন্য নিয়ে আসি শতভাগ
           কেমিক্যালমুক্ত ও স্বাস্থ্যসম্মত অর্গানিক খাদ্যপণ্য। সুন্দরবনের খাঁটি
           মধু, কাঠের ঘানির সরিষার তেল, প্রিমিয়াম গাওয়া ঘি থেকে শুরু করে বাছাইকৃত
@@ -72,20 +74,23 @@ export function StoreTrustShowcase() {
         </p>
       </div>
 
-      <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
-        <div className="lg:col-span-6 space-y-6">
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-4 items-center">
+        <div className="lg:col-span-4 space-y-4 sm:space-y-8 order-2 lg:order-1">
           {leftFeatures.map((item, idx) => {
             const Icon = item.icon;
             return (
-              <div key={idx} className="flex items-start gap-3.5 group">
-                <div className="w-10 h-10 rounded-full bg-[#5F9118] text-white flex items-center justify-center shrink-0 shadow-md shadow-[#5F9118]/25 group-hover:scale-110 transition-transform">
-                  <Icon className="w-5 h-5 text-white" />
+              <div
+                key={idx}
+                className="flex items-start gap-3 sm:gap-4 lg:flex-row-reverse lg:text-right group"
+              >
+                <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-[#5F9118] text-white flex items-center justify-center shrink-0 shadow-md shadow-[#5F9118]/25 group-hover:scale-110 transition-transform">
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
-                <div className="space-y-1 min-w-0">
-                  <h3 className="text-sm sm:text-base font-bold text-[#0F2920] leading-snug group-hover:text-[#5F9118] transition-colors">
+                <div className="space-y-0.5 sm:space-y-1 min-w-0">
+                  <h3 className="text-xs sm:text-base font-bold text-[#0F2920] leading-snug group-hover:text-[#5F9118] transition-colors">
                     {item.title}
                   </h3>
-                  <p className="text-xs text-[#637381] leading-relaxed">
+                  <p className="text-[11px] sm:text-xs text-[#637381] leading-relaxed">
                     {item.desc}
                   </p>
                 </div>
@@ -94,19 +99,32 @@ export function StoreTrustShowcase() {
           })}
         </div>
 
-        <div className="lg:col-span-6 space-y-6">
+        <div className="lg:col-span-4 flex items-center justify-center py-2 sm:py-4 order-1 lg:order-2">
+          <div className="relative group max-w-[220px] sm:max-w-[340px] w-full flex items-center justify-center">
+            <div className="absolute inset-0 rounded-full bg-white/60 blur-2xl scale-95 group-hover:scale-105 transition-transform" />
+            <Image
+              src="/trust-showcase.jpg"
+              alt="খাঁটি ও প্রাকৃতিক পুষ্টিকর খাদ্যপণ্য"
+              width={340}
+              height={340}
+              className="relative z-10 w-full h-auto object-contain rounded-2xl drop-shadow-xl group-hover:scale-105 transition-transform duration-500"
+            />
+          </div>
+        </div>
+
+        <div className="lg:col-span-4 space-y-4 sm:space-y-8 order-3">
           {rightFeatures.map((item, idx) => {
             const Icon = item.icon;
             return (
-              <div key={idx} className="flex items-start gap-3.5 group">
-                <div className="w-10 h-10 rounded-full bg-[#5F9118] text-white flex items-center justify-center shrink-0 shadow-md shadow-[#5F9118]/25 group-hover:scale-110 transition-transform">
-                  <Icon className="w-5 h-5 text-white" />
+              <div key={idx} className="flex items-start gap-3 sm:gap-4 text-left group">
+                <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-[#5F9118] text-white flex items-center justify-center shrink-0 shadow-md shadow-[#5F9118]/25 group-hover:scale-110 transition-transform">
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
-                <div className="space-y-1 min-w-0">
-                  <h3 className="text-sm sm:text-base font-bold text-[#0F2920] leading-snug group-hover:text-[#5F9118] transition-colors">
+                <div className="space-y-0.5 sm:space-y-1 min-w-0">
+                  <h3 className="text-xs sm:text-base font-bold text-[#0F2920] leading-snug group-hover:text-[#5F9118] transition-colors">
                     {item.title}
                   </h3>
-                  <p className="text-xs text-[#637381] leading-relaxed">
+                  <p className="text-[11px] sm:text-xs text-[#637381] leading-relaxed">
                     {item.desc}
                   </p>
                 </div>

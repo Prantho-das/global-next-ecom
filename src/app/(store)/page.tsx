@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { StoreCampaignBento } from "@/components/store/store-campaign-bento";
 import { StoreCategorySection } from "@/components/store/store-category-section";
 import { StoreHeroBanner } from "@/components/store/store-hero-banner";
-import { StoreProductCard } from "@/components/store/store-product-card";
+import { StoreProductSlider } from "@/components/store/store-product-slider";
+import { StoreTopSelling } from "@/components/store/store-top-selling";
 import { StoreTrustShowcase } from "@/components/store/store-trust-showcase";
+import { StoreVideoGallery } from "@/components/store/store-video-gallery";
 import { getStoreHomeDataCached } from "@/modules/sales/queries";
 
 export const metadata: Metadata = {
@@ -17,52 +18,60 @@ export const metadata: Metadata = {
 export default async function StoreHomePage() {
   const { featured, rootCategories } = await getStoreHomeDataCached();
 
+  const honeyGheeProducts = featured.filter(
+    (p) =>
+      p.name.includes("মধু") ||
+      p.name.includes("ঘি") ||
+      p.name.includes("তেল") ||
+      p.name.toLowerCase().includes("honey") ||
+      p.name.toLowerCase().includes("ghee") ||
+      p.name.toLowerCase().includes("oil"),
+  );
+
+  const nutsSeedsProducts = featured.filter(
+    (p) =>
+      p.name.includes("বাদাম") ||
+      p.name.includes("বীজ") ||
+      p.name.includes("নাট") ||
+      p.name.includes("সিড") ||
+      p.name.toLowerCase().includes("nuts") ||
+      p.name.toLowerCase().includes("seed"),
+  );
+
   return (
-    <div className="space-y-6 sm:space-y-8 pb-12">
+    <div className="space-y-8 sm:space-y-12 w-full font-sans">
       <StoreHeroBanner />
 
       <StoreCategorySection categories={rootCategories} />
 
-      <section aria-labelledby="featured-heading" className="w-full my-6">
-        <div className="flex items-center justify-between pb-3 mb-5 border-b border-slate-100">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#5F9118] animate-pulse" />
-              <h2
-                id="featured-heading"
-                className="text-base sm:text-xl lg:text-2xl font-black text-slate-800 tracking-tight"
-              >
-                জনপ্রিয় ও সেরা বিক্রিত পণ্যসমূহ
-              </h2>
-            </div>
-            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-              আমাদের সর্বাধিক জনপ্রিয় ও গ্রাহক প্রিয় খাঁটি পণ্য
-            </p>
-          </div>
-          <Link
-            href="/products"
-            className="text-xs font-bold text-[#5F9118] hover:underline"
-          >
-            সবগুলো দেখুন →
-          </Link>
-        </div>
+      <StoreTopSelling />
 
-        {featured.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-400">
-            কোন পণ্য পাওয়া যায়নি।
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
-            {featured.map((prod) => (
-              <StoreProductCard key={prod.id} product={prod} />
-            ))}
-          </div>
-        )}
-      </section>
+      <StoreProductSlider
+        title="সেরা ও বিশেষ অফার"
+        subtitle="গ্রাহকদের সবচেয়ে পছন্দের ট্রেন্ডিং অর্গানিক খাদ্যপণ্য"
+        products={featured}
+        viewAllHref="/products"
+      />
 
-      <StoreCampaignBento />
+      <StoreProductSlider
+        title="খাঁটি মধু ও গাওয়া ঘি স্পেশাল"
+        subtitle="প্রাকৃতিক চাকের মধু ও ঐতিহ্যবাহী কাঠের ঘানি ও গাওয়া ঘি"
+        products={honeyGheeProducts.length > 0 ? honeyGheeProducts : featured}
+        viewAllHref="/products?category=honey"
+      />
+
+      <StoreProductSlider
+        title="প্রিমিয়াম ড্রাই ফ্রুটস ও স্বাস্থ্যকর বাদাম"
+        subtitle="প্রতিদিনের শক্তি ও পুষ্টির জন্য সেরা মানের বাদাম ও সিড মিক্স"
+        products={nutsSeedsProducts.length > 0 ? nutsSeedsProducts : featured}
+        viewAllHref="/products?category=nuts"
+      />
 
       <StoreTrustShowcase />
+
+      <StoreVideoGallery />
+
+      <StoreCampaignBento />
     </div>
   );
 }
