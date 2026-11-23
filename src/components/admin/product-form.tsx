@@ -1189,13 +1189,14 @@ export function ProductForm({
                                           body: fd,
                                         });
                                         const data = (await res.json()) as { url?: string };
-                                        if (res.ok && data.url) {
+                                        const uploadedUrl = data.url;
+                                        if (res.ok && uploadedUrl) {
                                           const newId = crypto.randomUUID();
                                           setImages((prev) => [
                                             ...prev,
                                             {
                                               id: newId,
-                                              url: data.url!,
+                                              url: uploadedUrl,
                                               alt: name || file.name,
                                               position: prev.length,
                                             },

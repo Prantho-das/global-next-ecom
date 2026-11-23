@@ -3,9 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PdpClient } from "@/components/store/pdp-client";
-import { formatBdt } from "@/lib/money";
+import { StoreProductCard } from "@/components/store/store-product-card";
 import { getStoreProductBySlugCached } from "@/modules/sales/queries";
-import { computeFlatUnitPrice } from "@/modules/sales/service";
 
 export async function generateMetadata({
   params,
@@ -18,7 +17,7 @@ export async function generateMetadata({
     return { title: "Product Not Found" };
   }
   return {
-    title: data.product.seo?.title ?? data.product.name,
+    title: `${data.product.name} | BASA World`,
     description:
       data.product.seo?.description ?? data.product.description.slice(0, 160),
   };
@@ -37,7 +36,15 @@ export default async function StoreProductDetailPage({
   const { product, related } = data;
 
   return (
-    <main className="container" style={{ paddingTop: "24px" }}>
+    <div className="py-6 font-sans space-y-8">
+      <div className="text-xs text-slate-500 flex items-center gap-1.5 pb-2 border-b border-slate-100">
+        <Link href="/" className="hover:text-[#5F9118]">হোম</Link>
+        <span>/</span>
+        <Link href="/products" className="hover:text-[#5F9118]">পণ্যসমূহ</Link>
+        <span>/</span>
+        <span className="text-slate-800 font-bold truncate">{product.name}</span>
+      </div>
+
       <PdpClient
         productName={product.name}
         brandName={product.brand?.name ?? null}
@@ -47,54 +54,58 @@ export default async function StoreProductDetailPage({
         salePrice={product.salePrice}
       />
 
-      <section style={{ marginTop: "24px" }} aria-labelledby="reviews-heading">
-        <h2 id="reviews-heading" style={{ fontSize: "1.35rem" }}>
-          Customer Reviews ({product.reviews.length})
-        </h2>
+      <section className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs">
+        <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+          <h2 className="text-base sm:text-lg font-black text-slate-800">
+            গ্রাহক পর্যালোচনা ও মতামত ({product.reviews.length})
+          </h2>
+          <span className="text-xs text-[#5F9118] font-bold">১০০% ভেরিফাইড ক্রেতা</span>
+        </div>
+
         {product.reviews.length === 0 ? (
-          <p className="grey-text">No reviews yet.</p>
+          <p className="text-xs text-slate-400 py-4 text-center">
+            এই পণ্যের জন্য এখনও কোন রিভিউ দেওয়া হয়নি। আপনি পণ্যটি অর্ডার করে প্রথম রিভিউ দিন!
+          </p>
         ) : (
-          <ul className="collection">
+          <div className="space-y-3">
             {product.reviews.map((rev) => (
-              <li key={rev.id} className="collection-item">
-                <strong>
-                  {rev.title} ({rev.rating}/5)
-                </strong>
-                <p>{rev.body}</p>
-              </li>
+              <div key={rev.id} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="flex items-center justify-between">
+                  <strong className="text-xs font-bold text-slate-800">{rev.title}</strong>
+                  <span className="text-xs text-[#E8B65D] font-bold">★ {rev.rating}/5</span>
+                </div>
+                <p className="text-xs text-slate-600 mt-1">{rev.body}</p>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </section>
 
       {related.length > 0 && (
-        <section style={{ marginTop: "32px" }} aria-labelledby="related-heading">
-          <h2 id="related-heading" style={{ fontSize: "1.35rem" }}>
-            Related Products
-          </h2>
-          <div className="row">
+        <section className="pt-4">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#5F9118]" />
+            <h2 className="text-lg font-black text-slate-800">
+              সম্পর্কিত আরও পণ্য
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {related.map((item) => (
-              <div key={item.id} className="col s12 m6 l3">
-                <div className="card white">
-                  <div className="card-content">
-                    <span className="card-title" style={{ fontSize: "1rem" }}>
-                      {item.name}
-                    </span>
-                    <p>
-                      {formatBdt(
-                        computeFlatUnitPrice(item.basePrice, item.salePrice),
-                      )}
-                    </p>
-                  </div>
-                  <div className="card-action">
-                    <Link href={`/products/${item.slug}`}>View</Link>
-                  </div>
-                </div>
-              </div>
+              <StoreProductCard
+                key={item.id}
+                product={{
+                  id: item.id,
+                  name: item.name,
+                  slug: item.slug,
+                  basePrice: item.basePrice,
+                  salePrice: item.salePrice,
+                  imageUrl: item.imageUrl,
+                }}
+              />
             ))}
           </div>
         </section>
       )}
-    </main>
+    </div>
   );
 }

@@ -1,11 +1,13 @@
-import "@materializecss/materialize/dist/css/materialize.min.css";
 import { cookies } from "next/headers";
-import Link from "next/link";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { CartDrawer } from "@/components/store/cart-drawer";
+import { MobileBottomNav } from "@/components/store/mobile-bottom-nav";
+import { StoreFooter } from "@/components/store/store-footer";
+import { StoreHeader } from "@/components/store/store-header";
 import { TrackingPixels } from "@/components/store/tracking-pixels";
 import { getSession } from "@/lib/auth";
+import { getCategoriesTreeCached } from "@/modules/catalog/queries";
 import { getActivePricingContext } from "@/modules/pricing/queries";
 import { getActiveCartView } from "@/modules/sales/queries";
 import { getSiteSettings } from "@/modules/settings/queries";
@@ -13,16 +15,21 @@ import { getSiteSettings } from "@/modules/settings/queries";
 export default async function StoreLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
-  const [session, cookieStore, settings, pricingCtx] = await Promise.all([
-    getSession(),
-    cookies(),
-    getSiteSettings(),
-    getActivePricingContext(),
-  ]);
+  const [session, cookieStore, settings, pricingCtx, categories] =
+    await Promise.all([
+      getSession(),
+      cookies(),
+      getSiteSettings(),
+      getActivePricingContext(),
+      getCategoriesTreeCached(),
+    ]);
+
   const activeEventBanner =
     pricingCtx.specialDays.find(
-      (sd) => sd.banner !== undefined && sd.banner !== null && sd.banner.trim() !== "",
+      (sd) =>
+        sd.banner !== undefined && sd.banner !== null && sd.banner.trim() !== "",
     )?.banner ?? "";
+
   const topBannerText =
     activeEventBanner !== ""
       ? activeEventBanner
@@ -30,23 +37,17 @@ export default async function StoreLayout({
 
   if (settings.maintenanceMode) {
     return (
-      <main
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "24px",
-          textAlign: "center",
-        }}
-      >
-        <div className="card white" style={{ maxWidth: "460px", padding: "24px" }}>
-          <h1 style={{ fontSize: "1.75rem", marginTop: 0 }}>
+      <main className="min-h-screen flex items-center justify-center p-6 text-center bg-slate-100 font-sans">
+        <div className="bg-white rounded-2xl shadow-md p-8 max-w-md w-full border border-slate-200">
+          <h1 className="text-2xl font-black text-slate-800 mb-2">
             {settings.siteName} is Under Maintenance
           </h1>
-          <p className="grey-text">
+          <p className="text-sm text-slate-500">
             We are upgrading our store. Please check back shortly or contact{" "}
-            {settings.supportEmail}.
+            <span className="font-semibold text-slate-700">
+              {settings.supportEmail}
+            </span>
+            .
           </p>
         </div>
       </main>
@@ -56,91 +57,37 @@ export default async function StoreLayout({
   const sessionId = cookieStore.get("ecom_cart_sid")?.value ?? null;
   const userId = session?.user?.id ?? null;
   const cart = await getActiveCartView(sessionId, userId);
+  const cartCount = cart.items.reduce((sum, i) => sum + i.qty, 0);
+
+  const headerCategories = categories.map((c) => ({
+    id: c.id,
+    name: c.name,
+    slug: c.slug,
+  }));
 
   return (
-    <div
-      style={
-        {
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          "--brand-primary": settings.primaryColor,
-        } as CSSProperties
-      }
-    >
-      {topBannerText !== "" && (
-        <div
-          style={{
-            backgroundColor: settings.primaryColor,
-            color: "#ffffff",
-            textAlign: "center",
-            padding: "6px 12px",
-            fontSize: "0.875rem",
-            fontWeight: 600,
-          }}
-        >
-          {topBannerText}
-        </div>
-      )}
+    <div className="min-h-screen flex flex-col bg-[#f8fafc] text-slate-800 font-sans selection:bg-[#5F9118] selection:text-white">
+      <StoreHeader
+        siteName={settings.siteName}
+        announcement={topBannerText}
+        cartCount={cartCount}
+        categories={headerCategories}
+      />
 
-      <header>
-        <nav
-          className="blue-grey darken-4"
-          style={{ borderBottom: `3px solid ${settings.primaryColor}` }}
-          aria-label="Storefront navigation"
-        >
-          <div className="nav-wrapper container">
-            <Link
-              href="/"
-              className="brand-logo"
-              style={{
-                fontSize: "1.35rem",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
-              {settings.logoUrl.trim() !== "" && (
-                <img
-                  src={settings.logoUrl}
-                  alt={settings.siteName}
-                  style={{ height: "28px", width: "auto" }}
-                />
-              )}
-              <span>{settings.siteName}</span>
-            </Link>
-            <ul className="right">
-              <li>
-                <Link href="/products">Shop</Link>
-              </li>
-              <li>
-                <Link href="/track">Track Order</Link>
-              </li>
-              <li>
-                <Link href="/cart">
-                  Cart ({cart.items.reduce((sum, i) => sum + i.qty, 0)})
-                </Link>
-              </li>
-            </ul>
-          </div>
-        </nav>
-      </header>
+      <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
+        {children}
+      </main>
 
-      <div style={{ flex: 1 }}>{children}</div>
+      <StoreFooter />
+
+      <MobileBottomNav cartCount={cartCount} />
 
       <CartDrawer items={cart.items} subtotal={cart.subtotal} />
+
       <TrackingPixels
         metaPixelId={settings.metaPixelId}
         ga4MeasurementId={settings.ga4MeasurementId}
       />
-
-      <footer className="page-footer blue-grey darken-4" style={{ marginTop: "48px" }}>
-        <div className="container">
-          <p className="white-text">
-            {settings.siteName} — {settings.tagline} ({settings.supportPhone})
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }

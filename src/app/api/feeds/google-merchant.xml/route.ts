@@ -6,6 +6,7 @@ import { toTaka } from "@/lib/money";
 import { productImages, products, variants } from "@/modules/catalog/schema";
 import { renderGoogleMerchantXml } from "@/modules/marketing/service";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 3600;
 
 export async function GET(): Promise<Response> {

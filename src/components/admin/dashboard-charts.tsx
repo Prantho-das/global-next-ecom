@@ -69,9 +69,11 @@ export function DashboardCharts({
   const linePath = coords
     .map((c, idx) => `${idx === 0 ? "M" : "L"} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`)
     .join(" ");
+  const firstCoord = coords[0];
+  const lastCoord = coords[coords.length - 1];
   const areaPath =
-    coords.length > 0
-      ? `${linePath} L ${coords[coords.length - 1]!.x.toFixed(1)} ${(padY + plotH).toFixed(1)} L ${coords[0]!.x.toFixed(1)} ${(padY + plotH).toFixed(1)} Z`
+    firstCoord !== undefined && lastCoord !== undefined
+      ? `${linePath} L ${lastCoord.x.toFixed(1)} ${(padY + plotH).toFixed(1)} L ${firstCoord.x.toFixed(1)} ${(padY + plotH).toFixed(1)} Z`
       : "";
 
   const totalStatusCount = Math.max(

@@ -37,6 +37,7 @@ export interface StoreProductCard {
   compareAtPrice: number | null;
   brandName: string | null;
   imageUrl: string | null;
+  defaultVariantId: string | null;
   createdAt: Date;
 }
 
@@ -59,6 +60,13 @@ export const getStoreHomeDataCached = unstable_cache(
             FROM ${productImages}
             WHERE ${productImages.productId} = ${products.id}
             ORDER BY ${productImages.position} ASC
+            LIMIT 1
+          )`,
+          defaultVariantId: sql<string | null>`(
+            SELECT ${variants.id}
+            FROM ${variants}
+            WHERE ${variants.productId} = ${products.id}
+            ORDER BY ${variants.isDefault} DESC, ${variants.createdAt} ASC
             LIMIT 1
           )`,
         })
@@ -173,6 +181,13 @@ export async function listStoreProductsCursor(opts: {
         FROM ${productImages}
         WHERE ${productImages.productId} = ${products.id}
         ORDER BY ${productImages.position} ASC
+        LIMIT 1
+      )`,
+      defaultVariantId: sql<string | null>`(
+        SELECT ${variants.id}
+        FROM ${variants}
+        WHERE ${variants.productId} = ${products.id}
+        ORDER BY ${variants.isDefault} DESC, ${variants.createdAt} ASC
         LIMIT 1
       )`,
     })

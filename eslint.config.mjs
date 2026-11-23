@@ -13,7 +13,7 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   {
-    ignores: [".next/**", "node_modules/**", "drizzle/**"],
+    ignores: [".next/**", "node_modules/**", "drizzle/**", "next-env.d.ts"],
   },
   ...compat.extends("next/core-web-vitals"),
   ...tseslint.configs.strict,
@@ -40,6 +40,12 @@ const eslintConfig = [
           "newlines-between": "always",
         },
       ],
+    },
+  },
+  {
+    files: ["src/components/admin/**/*.tsx"],
+    rules: {
+      "@next/next/no-img-element": "off",
     },
   },
 ];

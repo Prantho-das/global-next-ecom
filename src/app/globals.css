@@ -1,6 +1,36 @@
 @import "tailwindcss";
 @import "@tabler/icons-webfont/dist/tabler-icons.min.css";
 
+@theme {
+  --color-brand-deep-forest: #0F3F0D;
+  --color-brand-dark-leaf: #5F9118;
+  --color-brand-olive: #487D12;
+  --color-brand-natural: #5F9118;
+  --color-brand-fresh: #76A31F;
+  --color-brand-lime: #92B628;
+  --color-brand-soft-leaf: #AECA92;
+  --color-brand-light-mint: #E8F5E1;
+
+  --color-brand-green: #5F9118;
+  --color-brand-green-hover: #487D12;
+  --color-brand-green-active: #31620D;
+  --color-brand-green-accent: #76A31F;
+  --color-brand-green-light: #AECA92;
+  --color-brand-gold: #E8B65D;
+  --color-brand-red: #FF3B30;
+  --color-brand-surface: #F8DE9E;
+  --color-brand-text: #0F2920;
+  --color-brand-muted: #637381;
+  --color-brand-border: #AECA92;
+
+  --shadow-card-sm: 0px 2px 6px 2px rgba(0, 0, 0, 0.03);
+  --shadow-card-md: 0px 4px 12px rgba(15, 41, 32, 0.08);
+  --shadow-card-lg: 0px 8px 24px rgba(15, 41, 32, 0.12);
+
+  --radius-default: 8px;
+  --radius-pill: 20px;
+}
+
 body {
   margin: 0;
   background-color: #f1f5f9;

@@ -37,26 +37,26 @@ export function GuestConvertForm({ orderNumber, phone }: GuestConvertFormProps) 
 
   if (done) {
     return (
-      <div className="card-panel green lighten-5 green-text text-darken-4">
-        Account created! You can now sign in with {email}.
+      <div className="p-4 bg-emerald-50 text-emerald-800 rounded-2xl border border-emerald-200 text-xs font-bold">
+        অ্যাকাউন্ট তৈরি সম্পন্ন হয়েছে! এখন আপনি {email} দিয়ে লগইন করতে পারবেন।
       </div>
     );
   }
 
   return (
-    <div className="card-panel white">
-      <h2 style={{ fontSize: "1.25rem", marginTop: 0 }}>
-        Create account to track orders
+    <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-3">
+      <h2 className="text-sm font-black text-slate-800">
+        অ্যাকাউন্ট তৈরি করে অর্ডার সংরক্ষণ করুন
       </h2>
       {error !== null && (
-        <div role="alert" className="red-text">
+        <div role="alert" className="p-2 bg-red-50 text-red-600 rounded-lg text-xs font-semibold">
           {error}
         </div>
       )}
-      <form onSubmit={handleSubmit}>
-        <div className="input-field">
-          <label htmlFor="conv-email" className="active">
-            Email
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div>
+          <label htmlFor="conv-email" className="block text-xs font-bold text-slate-700 mb-1">
+            ইমেইল
           </label>
           <input
             id="conv-email"
@@ -64,11 +64,12 @@ export function GuestConvertForm({ orderNumber, phone }: GuestConvertFormProps) 
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#5F9118]"
           />
         </div>
-        <div className="input-field">
-          <label htmlFor="conv-pass" className="active">
-            Password (min 8 chars)
+        <div>
+          <label htmlFor="conv-pass" className="block text-xs font-bold text-slate-700 mb-1">
+            পাসওয়ার্ড (কমপক্ষে ৮ অক্ষর)
           </label>
           <input
             id="conv-pass"
@@ -77,14 +78,15 @@ export function GuestConvertForm({ orderNumber, phone }: GuestConvertFormProps) 
             minLength={8}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#5F9118]"
           />
         </div>
         <button
           type="submit"
-          className="btn waves-effect waves-light"
           disabled={loading}
+          className="w-full bg-[#0F3F0D] hover:bg-[#071f06] text-white py-2 rounded-xl font-bold text-xs shadow-xs transition-all disabled:opacity-50"
         >
-          {loading ? "Creating..." : "Create Account"}
+          {loading ? "তৈরি হচ্ছে..." : "অ্যাকাউন্ট তৈরি করুন"}
         </button>
       </form>
     </div>

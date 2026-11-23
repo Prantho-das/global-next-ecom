@@ -17,6 +17,13 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["mysql2"],
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "**" },
+      { protocol: "http", hostname: "localhost" },
+    ],
+  },
   async headers() {
     return [
       {

@@ -6,6 +6,8 @@ import { SYSTEM_ROLE_SLUG } from "@/config/rbac";
 import { getSession } from "@/lib/auth";
 import { getUserPermissions } from "@/lib/guard";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {

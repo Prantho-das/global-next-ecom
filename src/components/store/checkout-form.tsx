@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 
 import { formatBdt } from "@/lib/money";
@@ -156,13 +156,19 @@ export function CheckoutForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const checkoutTrackedRef = useRef(false);
+
   useEffect(() => {
+    if (checkoutTrackedRef.current) {
+      return;
+    }
+    checkoutTrackedRef.current = true;
     trackStoreEvent("InitiateCheckout", {
       valueMajor: subtotal / 100,
       contentIds: items.map((i) => i.variantId),
       numItems: items.reduce((sum, i) => sum + i.qty, 0),
     });
-  }, []);
+  }, [items, subtotal]);
 
   const states = Object.keys(dynamicTree[country] ?? {});
   const districts = Object.keys(dynamicTree[country]?.[division] ?? {});
@@ -255,24 +261,30 @@ export function CheckoutForm({
   }
 
   return (
-    <div className="row">
-      <div className="col s12 l7">
-        <form onSubmit={handleSubmit} className="card-panel white">
-          <h2 style={{ fontSize: "1.35rem", marginTop: 0 }}>
-            Shipping &amp; Contact (Cash on Delivery)
-          </h2>
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 my-6 font-sans">
+      <div className="lg:col-span-7">
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-xs space-y-5">
+          <div>
+            <span className="text-xs font-bold text-[#5F9118] uppercase tracking-wider">ক্যাশ অন ডেলিভারি</span>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight mt-1">
+              ডেলিভারি ঠিকানা ও তথ্য
+            </h2>
+          </div>
+
           {error !== null && (
             <div
               role="alert"
-              className="card-panel red lighten-5 red-text text-darken-4"
+              className="p-3 bg-red-50 text-red-600 rounded-xl text-xs font-semibold border border-red-200"
             >
               {error}
             </div>
           )}
 
-          <div className="row">
-            <div className="col s12 m8">
-              <label htmlFor="chk-phone">Mobile Number (BD)</label>
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+            <div className="sm:col-span-8">
+              <label htmlFor="chk-phone" className="block text-xs font-bold text-slate-700 mb-1">
+                মোবাইল নম্বর
+              </label>
               <input
                 id="chk-phone"
                 type="tel"
@@ -285,23 +297,24 @@ export function CheckoutForm({
                     void captureAbandonContactAction({ contact: phone.trim() });
                   }
                 }}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#5F9118] focus:ring-2 focus:ring-[#5F9118]/20 transition-all"
               />
             </div>
-            <div className="col s12 m4" style={{ paddingTop: "24px" }}>
+            <div className="sm:col-span-4">
               <button
                 type="button"
-                className="btn-small waves-effect waves-light"
+                className="w-full bg-[#0F3F0D] hover:bg-[#071f06] text-white py-2.5 px-3 rounded-xl font-bold text-xs shadow-xs transition-all active:scale-95 disabled:opacity-50"
                 disabled={loading || phone.trim().length < 11}
                 onClick={handleSendOtp}
               >
-                {otpSent ? "Resend OTP" : "Send OTP"}
+                {otpSent ? "পুনরায় OTP পাঠান" : "OTP কোড পাঠান"}
               </button>
             </div>
           </div>
 
-          <div className="input-field">
-            <label htmlFor="chk-otp" className="active">
-              6-Digit OTP
+          <div>
+            <label htmlFor="chk-otp" className="block text-xs font-bold text-slate-700 mb-1">
+              ৬ ডিজিট OTP কোড
             </label>
             <input
               id="chk-otp"
@@ -310,52 +323,55 @@ export function CheckoutForm({
               maxLength={6}
               value={otpCode}
               onChange={(e) => setOtpCode(e.target.value)}
+              placeholder="123456"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#5F9118] focus:ring-2 focus:ring-[#5F9118]/20 transition-all font-mono font-bold tracking-widest"
             />
           </div>
 
-          <div className="input-field">
-            <label htmlFor="chk-name" className="active">
-              Full Name
+          <div>
+            <label htmlFor="chk-name" className="block text-xs font-bold text-slate-700 mb-1">
+              আপনার পুরো নাম
             </label>
             <input
               id="chk-name"
               type="text"
               required
+              placeholder="যেমন: মোহাম্মদ আব্দুল্লাহ"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#5F9118] focus:ring-2 focus:ring-[#5F9118]/20 transition-all"
             />
           </div>
 
           {shippingMode === "simple" ? (
-            <div className="row">
-              <div className="col s12">
-                <label htmlFor="chk-zone">Delivery Area</label>
-                <select
-                  id="chk-zone"
-                  className="browser-default"
-                  value={simpleZone}
-                  onChange={(e) => {
-                    const nextZone = e.target.value as "inside" | "outside";
-                    setSimpleZone(nextZone);
-                    setCouponPreview(null);
-                  }}
-                >
-                  <option value="inside">
-                    Inside Dhaka ({formatBdt(insideDhakaFee * 100)})
-                  </option>
-                  <option value="outside">
-                    Outside Dhaka ({formatBdt(outsideDhakaFee * 100)})
-                  </option>
-                </select>
-              </div>
+            <div>
+              <label htmlFor="chk-zone" className="block text-xs font-bold text-slate-700 mb-1">
+                ডেলিভারি এলাকা
+              </label>
+              <select
+                id="chk-zone"
+                value={simpleZone}
+                onChange={(e) => {
+                  const nextZone = e.target.value as "inside" | "outside";
+                  setSimpleZone(nextZone);
+                  setCouponPreview(null);
+                }}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:border-[#5F9118] bg-slate-50/50"
+              >
+                <option value="inside">
+                  ঢাকার ভিতরে ({formatBdt(insideDhakaFee * 100)})
+                </option>
+                <option value="outside">
+                  ঢাকার বাইরে ({formatBdt(outsideDhakaFee * 100)})
+                </option>
+              </select>
             </div>
           ) : (
-            <div className="row">
-              <div className="col s12 m6">
-                <label htmlFor="chk-country">Country</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="chk-country" className="block text-xs font-bold text-slate-700 mb-1">দেশ</label>
                 <select
                   id="chk-country"
-                  className="browser-default"
                   value={country}
                   onChange={(e) => {
                     const nextCountry = e.target.value;
@@ -374,6 +390,7 @@ export function CheckoutForm({
                     );
                     setCouponPreview(null);
                   }}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:border-[#5F9118] bg-slate-50/50"
                 >
                   {Object.keys(dynamicTree).map((c) => (
                     <option key={c} value={c}>
@@ -382,11 +399,10 @@ export function CheckoutForm({
                   ))}
                 </select>
               </div>
-              <div className="col s12 m6">
-                <label htmlFor="chk-div">State / Division</label>
+              <div>
+                <label htmlFor="chk-div" className="block text-xs font-bold text-slate-700 mb-1">বিভাগ / স্টেট</label>
                 <select
                   id="chk-div"
-                  className="browser-default"
                   value={division}
                   onChange={(e) => {
                     const nextDiv = e.target.value;
@@ -401,6 +417,7 @@ export function CheckoutForm({
                     );
                     setCouponPreview(null);
                   }}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:border-[#5F9118] bg-slate-50/50"
                 >
                   {states.map((s) => (
                     <option key={s} value={s}>
@@ -409,11 +426,10 @@ export function CheckoutForm({
                   ))}
                 </select>
               </div>
-              <div className="col s12 m6" style={{ marginTop: "12px" }}>
-                <label htmlFor="chk-dist">District / City</label>
+              <div>
+                <label htmlFor="chk-dist" className="block text-xs font-bold text-slate-700 mb-1">জেলা / শহর</label>
                 <select
                   id="chk-dist"
-                  className="browser-default"
                   value={district}
                   onChange={(e) => {
                     const nextDist = e.target.value;
@@ -423,6 +439,7 @@ export function CheckoutForm({
                     );
                     setCouponPreview(null);
                   }}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:border-[#5F9118] bg-slate-50/50"
                 >
                   {districts.map((d) => (
                     <option key={d} value={d}>
@@ -431,13 +448,13 @@ export function CheckoutForm({
                   ))}
                 </select>
               </div>
-              <div className="col s12 m6" style={{ marginTop: "12px" }}>
-                <label htmlFor="chk-thana">Area / Thana</label>
+              <div>
+                <label htmlFor="chk-thana" className="block text-xs font-bold text-slate-700 mb-1">থানা / এরিয়া</label>
                 <select
                   id="chk-thana"
-                  className="browser-default"
                   value={thana}
                   onChange={(e) => setThana(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:border-[#5F9118] bg-slate-50/50"
                 >
                   {thanas.map((t) => (
                     <option key={t} value={t}>
@@ -449,104 +466,111 @@ export function CheckoutForm({
             </div>
           )}
 
-          <div className="input-field">
-            <label htmlFor="chk-line" className="active">
-              Full Address
+          <div>
+            <label htmlFor="chk-line" className="block text-xs font-bold text-slate-700 mb-1">
+              সম্পূর্ণ ঠিকানা (বাসা/রোড/এলাকা)
             </label>
             <input
               id="chk-line"
               type="text"
               required
-              placeholder="House, Road, Block"
+              placeholder="বাড়ি নং, রোড নং, এলাকা"
               value={line}
               onChange={(e) => setLine(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#5F9118] focus:ring-2 focus:ring-[#5F9118]/20 transition-all"
             />
           </div>
 
-          <div className="input-field">
-            <label htmlFor="chk-note" className="active">
-              Order Note (Optional)
+          <div>
+            <label htmlFor="chk-note" className="block text-xs font-bold text-slate-700 mb-1">
+              অর্ডার নোট (ঐচ্ছিক)
             </label>
             <input
               id="chk-note"
               type="text"
+              placeholder="ডেলিভারির বিশেষ নির্দেশনা থাকলে লিখুন"
               value={note}
               onChange={(e) => setNote(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#5F9118] focus:ring-2 focus:ring-[#5F9118]/20 transition-all"
             />
           </div>
 
           <button
             type="submit"
-            className="btn-large waves-effect waves-light"
             disabled={loading}
-            style={{ width: "100%" }}
+            className="w-full bg-[#5F9118] hover:bg-[#487D12] active:scale-[0.99] text-white py-3.5 rounded-xl font-black text-base shadow-md shadow-[#5F9118]/25 transition-all disabled:opacity-50"
           >
-            {loading ? "Placing Order..." : "Place COD Order"}
+            {loading ? "অর্ডার প্রসেস হচ্ছে..." : "অর্ডার নিশ্চিত করুন (ক্যাশ অন ডেলিভারি)"}
           </button>
         </form>
       </div>
 
-      <div className="col s12 l5">
-        <div className="card-panel white">
-          <h2 style={{ fontSize: "1.35rem", marginTop: 0 }}>Order Summary</h2>
-          <ul className="collection">
+      <div className="lg:col-span-5">
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-4">
+          <h2 className="text-lg font-black text-slate-800 pb-3 border-b border-slate-100">
+            অর্ডার সামারি
+          </h2>
+          <div className="divide-y divide-slate-100">
             {items.map((item) => (
-              <li key={item.variantId} className="collection-item">
-                {item.productName} × {item.qty}
-                <span className="right">
+              <div key={item.variantId} className="py-2.5 flex justify-between items-center text-xs sm:text-sm">
+                <div>
+                  <p className="font-bold text-slate-800">{item.productName}</p>
+                  <p className="text-slate-400 text-xs">পরিমাণ: {item.qty} টি</p>
+                </div>
+                <span className="font-black text-[#0F3F0D]">
                   {formatBdt(item.unitPrice * item.qty)}
                 </span>
-              </li>
+              </div>
             ))}
-          </ul>
-          <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+          </div>
+
+          <div className="flex gap-2 pt-2">
             <input
               type="text"
               aria-label="Coupon code"
-              placeholder="Coupon code"
+              placeholder="কুপন কোড"
               value={couponCode}
               onChange={(e) => setCouponCode(e.target.value)}
+              className="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#5F9118]"
             />
             <button
               type="button"
-              className="btn-small"
               onClick={handleApplyCoupon}
               disabled={couponCode.trim().length === 0}
+              className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
             >
-              Apply
+              প্রয়োগ করুন
             </button>
           </div>
-          <p>
-            Subtotal{" "}
-            <span className="right">
-              {formatBdt(couponPreview?.subtotal ?? subtotal)}
-            </span>
-          </p>
-          {couponPreview !== null && couponPreview.couponDiscount > 0 && (
-            <p className="green-text">
-              Coupon ({couponPreview.couponCode})
-              <span className="right">
-                -{formatBdt(couponPreview.couponDiscount)}
+
+          <div className="pt-3 border-t border-slate-100 space-y-2 text-xs sm:text-sm">
+            <div className="flex justify-between text-slate-600">
+              <span>সাবটোটাল</span>
+              <span className="font-bold text-slate-800">
+                {formatBdt(couponPreview?.subtotal ?? subtotal)}
               </span>
-            </p>
-          )}
-          <p>
-            Shipping{" "}
-            <span className="right">
-              {formatBdt(
-                couponPreview?.shippingFee ?? shippingFeePoisha,
-              )}
-            </span>
-          </p>
-          <p style={{ fontWeight: 700, fontSize: "1.15rem" }}>
-            Total{" "}
-            <span className="right">
-              {formatBdt(
-                couponPreview?.total ??
-                  subtotal + shippingFeePoisha,
-              )}
-            </span>
-          </p>
+            </div>
+            {couponPreview !== null && couponPreview.couponDiscount > 0 && (
+              <div className="flex justify-between text-[#5F9118] font-bold">
+                <span>কুপন ছাড় ({couponPreview.couponCode})</span>
+                <span>-{formatBdt(couponPreview.couponDiscount)}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-slate-600">
+              <span>ডেলিভারি চার্জ</span>
+              <span className="font-bold text-slate-800">
+                {formatBdt(couponPreview?.shippingFee ?? shippingFeePoisha)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-base font-black text-slate-800 pt-3 border-t border-slate-100">
+              <span>সর্বমোট প্রদেয়</span>
+              <span className="text-lg text-[#5F9118]">
+                {formatBdt(
+                  couponPreview?.total ?? subtotal + shippingFeePoisha,
+                )}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
