@@ -10,78 +10,23 @@ export interface CategoryItem {
   id: string;
   name: string;
   slug: string;
+  imageUrl?: string | null;
 }
-
-const SHOP_CATEGORIES = [
-  {
-    id: "honey",
-    name: "খাঁটি মধু",
-    subtitle: "সুন্দরবন ও সরিষা ফুল",
-    img: "https://cdn.falaqfood.com/uploads/media/2026/09/01a0ec6f-bcb4-7172-a7c0-e8a41d1eaa4c.webp",
-  },
-  {
-    id: "oil",
-    name: "ঘি ও তেল",
-    subtitle: "গাওয়া ঘি ও ঘানি তেল",
-    img: "https://cdn.falaqfood.com/uploads/media/2026/09/01a0f1c3-0b24-71db-96ad-e1ddaf47d0c4.webp",
-  },
-  {
-    id: "mustard-oil",
-    name: "ঘানি সরিষার তেল",
-    subtitle: "কোল্ড প্রেসড ঝাঁঝালো",
-    img: "https://cdn.falaqfood.com/uploads/media/2026/10/01a1717a-7b79-7806-8524-cd419b7fef80.webp",
-  },
-  {
-    id: "nuts",
-    name: "বাদাম ও বীজ",
-    subtitle: "হানি নাটস ও কাজু",
-    img: "https://cdn.falaqfood.com/uploads/media/2026/09/01a0ec79-c3da-7dc9-bf55-9a364479cbe5.webp",
-  },
-  {
-    id: "special",
-    name: "স্পেশাল টনিক",
-    subtitle: "রসুনজিরা ও কম্বো",
-    img: "https://cdn.falaqfood.com/uploads/media/2026/06/019ef93a-f9df-7731-9976-0ba2c308205f.webp",
-  },
-  {
-    id: "seeds",
-    name: "অর্গানিক সিডস",
-    subtitle: "চিয়া, পাম্পকিন সিড",
-    img: "https://cdn.falaqfood.com/uploads/media/2026/09/01a0f209-acec-725e-9813-f29b83ef8a17.webp",
-  },
-  {
-    id: "black-honey",
-    name: "কালোজিরা মধু",
-    subtitle: "প্রাকৃতিক অ্যান্টিঅক্সিডেন্ট",
-    img: "https://cdn.falaqfood.com/uploads/media/2026/09/01a0f207-2dfe-7770-8dd7-8a2adaa31b48.webp",
-  },
-  {
-    id: "roasted-cashew",
-    name: "রোস্টেড কাজু",
-    subtitle: "ক্রিস্পি ও পুষ্টিকর",
-    img: "https://cdn.falaqfood.com/uploads/media/2026/09/01a0ed2c-9168-7fab-ba3c-1d2d1eec42a6.webp",
-  },
-];
 
 export function StoreCategorySection({
   categories,
 }: {
-  categories?: readonly CategoryItem[];
-} = {}) {
+  categories: readonly CategoryItem[];
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const displayList =
-    categories && categories.length > 0
-      ? categories.map((c) => {
-          const matched = SHOP_CATEGORIES.find((s) => s.id === c.slug);
-          return {
-            id: c.slug,
-            name: c.name,
-            subtitle: matched?.subtitle ?? "প্রাকৃতিক খাদ্যপণ্য",
-            img: matched?.img ?? SHOP_CATEGORIES[0]?.img ?? "/banners/organic-food-1.jpg",
-          };
-        })
-      : SHOP_CATEGORIES;
+  if (categories.length === 0) return null;
+
+  const displayList = categories.map((c) => ({
+    id: c.slug,
+    name: c.name,
+    img: c.imageUrl ?? "/banners/organic-food-1.jpg",
+  }));
 
   function scroll(direction: "left" | "right") {
     if (containerRef.current) {
@@ -152,9 +97,6 @@ export function StoreCategorySection({
             <h3 className="text-xs sm:text-sm font-bold text-slate-800 group-hover:text-[#5F9118] transition-colors leading-tight line-clamp-1">
               {cat.name}
             </h3>
-            <span className="text-[11px] text-slate-500 font-medium mt-0.5 line-clamp-1">
-              {cat.subtitle}
-            </span>
           </Link>
         ))}
       </div>

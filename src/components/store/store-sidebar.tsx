@@ -25,91 +25,14 @@ export interface SidebarCategoryItem {
   name: string;
   slug: string;
   icon?: string;
-  subcategories?: Array<{ label: string; query: string }>;
+  subcategories?: Array<{ label: string; slug: string }>;
 }
 
-const DEFAULT_CATEGORIES: SidebarCategoryItem[] = [
-  {
-    id: "honey",
-    name: "খাঁটি মধু কালেকশন",
-    slug: "honey",
-    subcategories: [
-      { label: "সব ধরনের মধু", query: "honey" },
-      { label: "সরিষা ফুলের মধু", query: "সরিষা ফুলের মধু" },
-      { label: "কালোজিরা ফুলের মধু", query: "কালোজিরা ফুলের মধু" },
-      { label: "ঔষধি মধু মিক্স", query: "রসুনজিরা" },
-    ],
-  },
-  {
-    id: "oil",
-    name: "খাঁটি তেল ও ঘি",
-    slug: "oil",
-    subcategories: [
-      { label: "সকল তেল ও ঘি", query: "oil" },
-      { label: "প্রিমিয়াম গাওয়া ঘি", query: "গাওয়া ঘি" },
-      { label: "কাঠের ঘানির সরিষার তেল", query: "সরিষার তেল" },
-    ],
-  },
-  {
-    id: "nuts",
-    name: "বাদাম ও স্বাস্থ্যকর বীজ",
-    slug: "nuts",
-    subcategories: [
-      { label: "সকল বাদাম ও সিড", query: "nuts" },
-      { label: "প্রিমিয়াম হানি নাটস", query: "হানি নাটস" },
-      { label: "রোস্টেড কাজুবাদাম", query: "কাজুবাদাম" },
-      { label: "অর্গানিক সিড মিক্স", query: "সিড মিক্স" },
-    ],
-  },
-  {
-    id: "special",
-    name: "ভেষজ ও স্পেশাল প্যাক",
-    slug: "special",
-    subcategories: [
-      { label: "সকল স্পেশাল আইটেম", query: "special" },
-      { label: "রসুনজিরা টনিক", query: "রসুনজিরা" },
-      { label: "প্রাইমাল গোল্ড কম্বো", query: "প্রাইমাল গোল্ড" },
-    ],
-  },
-  {
-    id: "dates",
-    name: "মদিনার প্রিমিয়াম খেজুর",
-    slug: "dates",
-    subcategories: [
-      { label: "সকল খেজুর কালেকশন", query: "dates" },
-      { label: "আজওয়া ও মরিয়ম", query: "আজওয়া" },
-      { label: "সুক্কারি প্রিমিয়াম", query: "সুক্কারি" },
-    ],
-  },
-  {
-    id: "spices",
-    name: "খাঁটি গুঁড়া ও আস্ত মশলা",
-    slug: "spices",
-    subcategories: [
-      { label: "রান্নার স্পেশাল মশলা", query: "spices" },
-      { label: "হলুদ ও মরিচ গুঁড়া", query: "মরিচ" },
-      { label: "শাহী গরম মশলা", query: "শাহী" },
-    ],
-  },
-  {
-    id: "tea",
-    name: "অর্গানিক গ্রিন টি ও পানীয়",
-    slug: "tea",
-    subcategories: [
-      { label: "অর্গানিক গ্রিন টি", query: "গ্রিন টি" },
-      { label: "ভেষজ চা ও ক্বাথ", query: "চা" },
-    ],
-  },
-  {
-    id: "combo",
-    name: "ফ্যামিলি কম্বো ও গিফট বক্স",
-    slug: "combo",
-    subcategories: [
-      { label: "পুষ্টি গিফট বক্স", query: "গিফট" },
-      { label: "সাপ্তাহিক বাজার কম্বো", query: "কম্বো" },
-    ],
-  },
-];
+export interface StoreSidebarProps {
+  categories: readonly SidebarCategoryItem[];
+  totalProductCount: number;
+  supportPhone: string;
+}
 
 function getCategoryIcon(slug: string) {
   switch (slug) {
@@ -134,15 +57,14 @@ function getCategoryIcon(slug: string) {
   }
 }
 
-export function StoreSidebar() {
+export function StoreSidebar({
+  categories,
+  totalProductCount,
+  supportPhone,
+}: StoreSidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({
-    honey: true,
-    oil: false,
-    nuts: false,
-    special: false,
-  });
+  const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     function handleToggle(e: Event) {
@@ -202,14 +124,17 @@ export function StoreSidebar() {
                   </span>
                 </div>
                 <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
-                  ২৪
+                  {totalProductCount}
                 </span>
               </Link>
             </li>
 
-            {DEFAULT_CATEGORIES.map((category) => {
+            {categories.map((category) => {
               const isOpen = openAccordions[category.slug] ?? false;
               const Icon = getCategoryIcon(category.slug);
+              const hasSubs =
+                category.subcategories !== undefined &&
+                category.subcategories.length > 0;
 
               return (
                 <li key={category.id} className="flex flex-col">
@@ -224,7 +149,7 @@ export function StoreSidebar() {
                       </span>
                     </Link>
 
-                    {category.subcategories && (
+                    {hasSubs && (
                       <button
                         type="button"
                         onClick={(e) => toggleAccordion(category.slug, e)}
@@ -240,12 +165,12 @@ export function StoreSidebar() {
                     )}
                   </div>
 
-                  {isOpen && category.subcategories && (
+                  {isOpen && hasSubs && (
                     <div className="bg-slate-50/80 border-t border-slate-100 py-1.5 px-3 space-y-0.5">
-                      {category.subcategories.map((sub, idx) => (
+                      {category.subcategories?.map((sub, idx) => (
                         <Link
                           key={idx}
-                          href={`/products?q=${encodeURIComponent(sub.query)}`}
+                          href={`/products?category=${encodeURIComponent(sub.slug)}`}
                           className="flex items-center justify-between py-1.5 px-2.5 rounded-md text-xs font-medium text-slate-600 hover:text-[#5F9118] hover:bg-white transition-colors"
                         >
                           <span className="truncate">• {sub.label}</span>
@@ -268,7 +193,7 @@ export function StoreSidebar() {
             </Link>
             <div className="flex items-center gap-2 text-slate-500 py-0.5">
               <Phone className="w-3.5 h-3.5 text-[#5F9118]" />
-              <span>হটলাইন: ০১৭১১-০০০০০০</span>
+              <span>হটলাইন: {supportPhone}</span>
             </div>
           </div>
         </div>
@@ -321,7 +246,7 @@ export function StoreSidebar() {
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 py-1 block">
                 পণ্যের ক্যাটাগরি
               </span>
-              {DEFAULT_CATEGORIES.map((category) => (
+              {categories.map((category) => (
                 <Link
                   key={category.id}
                   href={`/products?category=${encodeURIComponent(category.slug)}`}

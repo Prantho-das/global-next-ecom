@@ -25,13 +25,19 @@ export interface StoreHeaderCategory {
 
 export interface StoreHeaderProps {
   siteName?: string;
+  tagline?: string;
+  supportPhone?: string;
+  logoUrl?: string;
   announcement?: string;
   cartCount: number;
   categories: readonly StoreHeaderCategory[];
 }
 
 export function StoreHeader({
-  siteName = "BASA World",
+  siteName = "BD Shop",
+  tagline = "Quality products delivered across Bangladesh",
+  supportPhone = "01700000000",
+  logoUrl = "",
   announcement,
   cartCount,
   categories,
@@ -40,6 +46,7 @@ export function StoreHeader({
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const resolvedLogo = logoUrl.trim() !== "" ? logoUrl : "/logo.png";
 
   function handleSearch(e: FormEvent) {
     e.preventDefault();
@@ -77,7 +84,7 @@ export function StoreHeader({
               <span>সকল পণ্য</span>
             </Link>
             <span>•</span>
-            <span>হটলাইন: ০১৭১১-০০০০০০</span>
+            <span>হটলাইন: {supportPhone}</span>
           </div>
         </div>
       </aside>
@@ -104,7 +111,7 @@ export function StoreHeader({
 
             <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group">
               <Image
-                src="/logo.png"
+                src={resolvedLogo}
                 alt={siteName}
                 width={40}
                 height={40}
@@ -113,10 +120,10 @@ export function StoreHeader({
               />
               <div>
                 <span className="block text-lg sm:text-xl font-black tracking-tight text-[#0F2920] group-hover:text-[#5F9118] transition-colors leading-none font-serif">
-                  BASA <span className="text-[#5F9118]">World</span>
+                  {siteName}
                 </span>
-                <span className="block text-[9px] sm:text-[10px] font-semibold text-[#637381] tracking-wider uppercase mt-0.5">
-                  Pure & Authentic Food
+                <span className="block text-[9px] sm:text-[10px] font-semibold text-[#637381] tracking-wider uppercase mt-0.5 line-clamp-1 max-w-[160px] sm:max-w-none">
+                  {tagline}
                 </span>
               </div>
             </Link>
@@ -151,7 +158,7 @@ export function StoreHeader({
 
           <div className="hidden md:flex items-center gap-3 shrink-0">
             <a
-              href="tel:01711000000"
+              href={`tel:${supportPhone}`}
               className="hidden lg:inline-flex items-center gap-1.5 text-xs font-semibold text-[#0F2920] border border-slate-200 hover:border-[#5F9118] px-3.5 py-2 rounded-lg hover:bg-slate-50 transition-colors"
             >
               <Phone className="w-3.5 h-3.5 text-[#5F9118]" />
@@ -241,7 +248,7 @@ export function StoreHeader({
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <Image
-                  src="/logo.png"
+                  src={resolvedLogo}
                   alt={siteName}
                   width={32}
                   height={32}

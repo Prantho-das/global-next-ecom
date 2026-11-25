@@ -31,6 +31,7 @@ export interface SettingsManagerProps {
 
 type SettingsTab =
   | "general"
+  | "storefront"
   | "seo"
   | "tracking"
   | "checkout"
@@ -41,6 +42,7 @@ type SettingsTab =
 
 const TABS: ReadonlyArray<{ id: SettingsTab; label: string; icon: string }> = [
   { id: "general", label: "General", icon: "ti-building-store" },
+  { id: "storefront", label: "Storefront", icon: "ti-layout-dashboard" },
   { id: "seo", label: "SEO & Meta", icon: "ti-world" },
   { id: "tracking", label: "Pixels & Analytics", icon: "ti-chart-dots" },
   { id: "checkout", label: "Checkout & Tax", icon: "ti-shopping-cart" },
@@ -109,7 +111,14 @@ export function SettingsManager({
   );
 
   async function saveGroup(
-    group: "general" | "seo" | "tracking" | "checkout" | "notifications" | "fraud",
+    group:
+      | "general"
+      | "storefront"
+      | "seo"
+      | "tracking"
+      | "checkout"
+      | "notifications"
+      | "fraud",
     entries: Record<string, unknown>,
   ) {
     setSaving(true);
@@ -1257,6 +1266,353 @@ export function SettingsManager({
                 </button>
               </form>
             </div>
+          )}
+
+          {tab === "storefront" && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void saveGroup("storefront", {
+                  heroSlides: cfg.heroSlides,
+                  heroSideTop: cfg.heroSideTop,
+                  heroSideBottom: cfg.heroSideBottom,
+                  storeVideos: cfg.storeVideos,
+                  trustSection: cfg.trustSection,
+                  campaignBento: cfg.campaignBento,
+                });
+              }}
+              className="space-y-6"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold uppercase text-slate-500">
+                    Hero Banner Slides
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCfg((prev) => ({
+                        ...prev,
+                        heroSlides: [
+                          ...prev.heroSlides,
+                          {
+                            id: `slide-${Date.now()}`,
+                            img: "/banners/organic-food-1.jpg",
+                            alt: "New Banner",
+                            link: "/products",
+                          },
+                        ],
+                      }))
+                    }
+                    className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded"
+                  >
+                    + Add Slide
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {cfg.heroSlides.map((slide, idx) => (
+                    <div
+                      key={slide.id}
+                      className="grid grid-cols-1 md:grid-cols-12 gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded items-center"
+                    >
+                      <input
+                        type="text"
+                        placeholder="Image URL"
+                        className={`${INPUT_CLS} md:col-span-4`}
+                        value={slide.img}
+                        onChange={(e) => {
+                          const next = [...cfg.heroSlides];
+                          next[idx] = { ...slide, img: e.target.value };
+                          setCfg({ ...cfg, heroSlides: next });
+                        }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Alt text"
+                        className={`${INPUT_CLS} md:col-span-4`}
+                        value={slide.alt}
+                        onChange={(e) => {
+                          const next = [...cfg.heroSlides];
+                          next[idx] = { ...slide, alt: e.target.value };
+                          setCfg({ ...cfg, heroSlides: next });
+                        }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Link (/products)"
+                        className={`${INPUT_CLS} md:col-span-3`}
+                        value={slide.link}
+                        onChange={(e) => {
+                          const next = [...cfg.heroSlides];
+                          next[idx] = { ...slide, link: e.target.value };
+                          setCfg({ ...cfg, heroSlides: next });
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCfg({
+                            ...cfg,
+                            heroSlides: cfg.heroSlides.filter((_, i) => i !== idx),
+                          })
+                        }
+                        className="px-2 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded md:col-span-1"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded space-y-2">
+                  <div className="text-xs font-bold uppercase text-slate-500">
+                    Hero Side Banner (Top)
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Image URL"
+                    className={INPUT_CLS}
+                    value={cfg.heroSideTop.img}
+                    onChange={(e) =>
+                      setCfg({
+                        ...cfg,
+                        heroSideTop: { ...cfg.heroSideTop, img: e.target.value },
+                      })
+                    }
+                  />
+                  <input
+                    type="text"
+                    placeholder="Alt text"
+                    className={INPUT_CLS}
+                    value={cfg.heroSideTop.alt}
+                    onChange={(e) =>
+                      setCfg({
+                        ...cfg,
+                        heroSideTop: { ...cfg.heroSideTop, alt: e.target.value },
+                      })
+                    }
+                  />
+                  <input
+                    type="text"
+                    placeholder="Link"
+                    className={INPUT_CLS}
+                    value={cfg.heroSideTop.link}
+                    onChange={(e) =>
+                      setCfg({
+                        ...cfg,
+                        heroSideTop: { ...cfg.heroSideTop, link: e.target.value },
+                      })
+                    }
+                  />
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded space-y-2">
+                  <div className="text-xs font-bold uppercase text-slate-500">
+                    Hero Side Banner (Bottom)
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Image URL"
+                    className={INPUT_CLS}
+                    value={cfg.heroSideBottom.img}
+                    onChange={(e) =>
+                      setCfg({
+                        ...cfg,
+                        heroSideBottom: { ...cfg.heroSideBottom, img: e.target.value },
+                      })
+                    }
+                  />
+                  <input
+                    type="text"
+                    placeholder="Alt text"
+                    className={INPUT_CLS}
+                    value={cfg.heroSideBottom.alt}
+                    onChange={(e) =>
+                      setCfg({
+                        ...cfg,
+                        heroSideBottom: { ...cfg.heroSideBottom, alt: e.target.value },
+                      })
+                    }
+                  />
+                  <input
+                    type="text"
+                    placeholder="Link"
+                    className={INPUT_CLS}
+                    value={cfg.heroSideBottom.link}
+                    onChange={(e) =>
+                      setCfg({
+                        ...cfg,
+                        heroSideBottom: { ...cfg.heroSideBottom, link: e.target.value },
+                      })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold uppercase text-slate-500">
+                    Video Gallery
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCfg((prev) => ({
+                        ...prev,
+                        storeVideos: [
+                          ...prev.storeVideos,
+                          {
+                            id: `vid-${Date.now()}`,
+                            title: "New Video",
+                            category: "Video",
+                            date: "",
+                            duration: "03:00",
+                            thumbnail: "/videos/video-1.jpg",
+                            youtubeId: "6P5pSpUps6A",
+                          },
+                        ],
+                      }))
+                    }
+                    className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded"
+                  >
+                    + Add Video
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {cfg.storeVideos.map((vid, idx) => (
+                    <div
+                      key={vid.id}
+                      className="grid grid-cols-1 md:grid-cols-12 gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded items-center"
+                    >
+                      <input
+                        type="text"
+                        placeholder="Title"
+                        className={`${INPUT_CLS} md:col-span-4`}
+                        value={vid.title}
+                        onChange={(e) => {
+                          const next = [...cfg.storeVideos];
+                          next[idx] = { ...vid, title: e.target.value };
+                          setCfg({ ...cfg, storeVideos: next });
+                        }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Thumbnail URL"
+                        className={`${INPUT_CLS} md:col-span-4`}
+                        value={vid.thumbnail}
+                        onChange={(e) => {
+                          const next = [...cfg.storeVideos];
+                          next[idx] = { ...vid, thumbnail: e.target.value };
+                          setCfg({ ...cfg, storeVideos: next });
+                        }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="YouTube ID"
+                        className={`${INPUT_CLS} md:col-span-3`}
+                        value={vid.youtubeId}
+                        onChange={(e) => {
+                          const next = [...cfg.storeVideos];
+                          next[idx] = { ...vid, youtubeId: e.target.value };
+                          setCfg({ ...cfg, storeVideos: next });
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCfg({
+                            ...cfg,
+                            storeVideos: cfg.storeVideos.filter((_, i) => i !== idx),
+                          })
+                        }
+                        className="px-2 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded md:col-span-1"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded space-y-3">
+                <div className="text-xs font-bold uppercase text-slate-500">
+                  Trust Showcase & Campaign Bento
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className={LABEL_CLS}>Trust Section Title</label>
+                    <input
+                      type="text"
+                      className={INPUT_CLS}
+                      value={cfg.trustSection.title}
+                      onChange={(e) =>
+                        setCfg({
+                          ...cfg,
+                          trustSection: { ...cfg.trustSection, title: e.target.value },
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className={LABEL_CLS}>Trust Center Image URL</label>
+                    <input
+                      type="text"
+                      className={INPUT_CLS}
+                      value={cfg.trustSection.image}
+                      onChange={(e) =>
+                        setCfg({
+                          ...cfg,
+                          trustSection: { ...cfg.trustSection, image: e.target.value },
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className={LABEL_CLS}>Campaign Main Title</label>
+                    <input
+                      type="text"
+                      className={INPUT_CLS}
+                      value={cfg.campaignBento.mainTitle}
+                      onChange={(e) =>
+                        setCfg({
+                          ...cfg,
+                          campaignBento: {
+                            ...cfg.campaignBento,
+                            mainTitle: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className={LABEL_CLS}>Campaign Main Image URL</label>
+                    <input
+                      type="text"
+                      className={INPUT_CLS}
+                      value={cfg.campaignBento.mainImg}
+                      onChange={(e) =>
+                        setCfg({
+                          ...cfg,
+                          campaignBento: {
+                            ...cfg.campaignBento,
+                            mainImg: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded shadow-sm"
+              >
+                {saving ? "Saving..." : "Save Storefront Settings"}
+              </button>
+            </form>
           )}
         </div>
       </div>

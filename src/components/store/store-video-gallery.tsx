@@ -5,76 +5,16 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { ChevronRight, Play, X } from "@/components/store/icons";
+import type { StoreVideoItem } from "@/modules/settings/queries";
 
-interface VideoItem {
-  id: number;
-  title: string;
-  category: string;
-  date: string;
-  duration: string;
-  thumbnail: string;
-  youtubeId: string;
-}
+export function StoreVideoGallery({
+  videos,
+}: {
+  videos: readonly StoreVideoItem[];
+}) {
+  const [activeVideo, setActiveVideo] = useState<StoreVideoItem | null>(null);
 
-const VIDEOS: VideoItem[] = [
-  {
-    id: 1,
-    title: "খাঁটি মধু সংগ্রহের বাস্তব দৃশ্য | ১০০% প্রাকৃতিক চাকের মধু | BASA World",
-    category: "মধু সংগ্রহ",
-    date: "১০ নভেম্বর ২০২৬",
-    duration: "০৩:৪৫",
-    thumbnail: "/videos/video-1.jpg",
-    youtubeId: "6P5pSpUps6A",
-  },
-  {
-    id: 2,
-    title: "কাঠের ঘানিতে খাঁটি সরিষার তেল ভাঙানোর পুরো প্রক্রিয়া ও ঝাঁঝ পরীক্ষা",
-    category: "তেল ও ঘি",
-    date: "০৮ নভেম্বর ২০২৬",
-    duration: "০৫:২০",
-    thumbnail: "/videos/video-2.jpg",
-    youtubeId: "6P5pSpUps6A",
-  },
-  {
-    id: 3,
-    title: "খাঁটি গরুর দুধের মাখন থেকে ঐতিহ্যবাহী দানাদার গাওয়া ঘি তৈরির পদ্ধতি",
-    category: "তেল ও ঘি",
-    date: "০৫ নভেম্বর ২০২৬",
-    duration: "০৪:১৫",
-    thumbnail: "/videos/video-3.jpg",
-    youtubeId: "6P5pSpUps6A",
-  },
-  {
-    id: 4,
-    title: "প্রিমিয়াম হানি নাটস তৈরি ও সঠিক ড্রাই ফ্রুটস সিলেকশন গাইড",
-    category: "বাদাম ও বীজ",
-    date: "০২ নভেম্বর ২০২৬",
-    duration: "০৬:১০",
-    thumbnail: "/videos/video-4.jpg",
-    youtubeId: "6P5pSpUps6A",
-  },
-  {
-    id: 5,
-    title: "গ্রাহকদের বাস্তব অভিজ্ঞতা ও রিভিউ ।। পর্ব ০১ ।। BASA World",
-    category: "গ্রাহক রিভিউ",
-    date: "২৮ অক্টোবর ২০২৬",
-    duration: "০২:৫০",
-    thumbnail: "/videos/video-1.jpg",
-    youtubeId: "6P5pSpUps6A",
-  },
-  {
-    id: 6,
-    title: "রসুনজিরা টনিক তৈরি ও পুষ্টি উপাদান বিশদ বিশ্লেষণ",
-    category: "ভেষজ টনিক",
-    date: "২৫ অক্টোবর ২০২৬",
-    duration: "০৪:৩০",
-    thumbnail: "/videos/video-2.jpg",
-    youtubeId: "6P5pSpUps6A",
-  },
-];
-
-export function StoreVideoGallery() {
-  const [activeVideo, setActiveVideo] = useState<VideoItem | null>(null);
+  if (videos.length === 0) return null;
 
   return (
     <section aria-label="Video Gallery" className="w-full my-8 font-sans">
@@ -92,7 +32,7 @@ export function StoreVideoGallery() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-        {VIDEOS.map((video) => (
+        {videos.map((video) => (
           <div
             key={video.id}
             onClick={() => setActiveVideo(video)}

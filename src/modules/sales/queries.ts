@@ -44,63 +44,132 @@ export interface StoreProductCard {
 export const getStoreHomeDataCached = unstable_cache(
   async () => {
     const db = getDb();
-    const [featured, rootCategories, allBrands] = await Promise.all([
-      db
-        .select({
-          id: products.id,
-          name: products.name,
-          slug: products.slug,
-          basePrice: products.basePrice,
-          salePrice: products.salePrice,
-          compareAtPrice: products.compareAtPrice,
-          brandName: brands.name,
-          createdAt: products.createdAt,
-          imageUrl: sql<string | null>`(
-            SELECT ${productImages.url}
-            FROM ${productImages}
-            WHERE ${productImages.productId} = ${products.id}
-            ORDER BY ${productImages.position} ASC
-            LIMIT 1
-          )`,
-          defaultVariantId: sql<string | null>`(
-            SELECT ${variants.id}
-            FROM ${variants}
-            WHERE ${variants.productId} = ${products.id}
-            ORDER BY ${variants.isDefault} DESC, ${variants.createdAt} ASC
-            LIMIT 1
-          )`,
-        })
-        .from(products)
-        .leftJoin(brands, eq(products.brandId, brands.id))
-        .where(and(eq(products.status, "active"), isNull(products.deletedAt)))
-        .orderBy(desc(products.createdAt))
-        .limit(8),
-      db
-        .select({
-          id: categories.id,
-          name: categories.name,
-          slug: categories.slug,
-        })
-        .from(categories)
-        .where(and(eq(categories.depth, 0), isNull(categories.deletedAt)))
-        .orderBy(asc(categories.position), asc(categories.name))
-        .limit(8),
-      db
-        .select({
-          id: brands.id,
-          name: brands.name,
-          slug: brands.slug,
-        })
-        .from(brands)
-        .where(isNull(brands.deletedAt))
-        .orderBy(asc(brands.name))
-        .limit(8),
-    ]);
+    const [featured, topSelling, rootCategories, allBrands, totalCountRows] =
+      await Promise.all([
+        db
+          .select({
+            id: products.id,
+            name: products.name,
+            slug: products.slug,
+            basePrice: products.basePrice,
+            salePrice: products.salePrice,
+            compareAtPrice: products.compareAtPrice,
+            brandName: brands.name,
+            createdAt: products.createdAt,
+            imageUrl: sql<string | null>`(
+              SELECT ${productImages.url}
+              FROM ${productImages}
+              WHERE ${productImages.productId} = ${products.id}
+              ORDER BY ${productImages.position} ASC
+              LIMIT 1
+            )`,
+            defaultVariantId: sql<string | null>`(
+              SELECT ${variants.id}
+              FROM ${variants}
+              WHERE ${variants.productId} = ${products.id}
+              ORDER BY ${variants.isDefault} DESC, ${variants.createdAt} ASC
+              LIMIT 1
+            )`,
+          })
+          .from(products)
+          .leftJoin(brands, eq(products.brandId, brands.id))
+          .where(and(eq(products.status, "active"), isNull(products.deletedAt)))
+          .orderBy(desc(products.createdAt))
+          .limit(12),
+        db
+          .select({
+            id: products.id,
+            name: products.name,
+            slug: products.slug,
+            basePrice: products.basePrice,
+            salePrice: products.salePrice,
+            compareAtPrice: products.compareAtPrice,
+            brandName: brands.name,
+            createdAt: products.createdAt,
+            imageUrl: sql<string | null>`(
+              SELECT ${productImages.url}
+              FROM ${productImages}
+              WHERE ${productImages.productId} = ${products.id}
+              ORDER BY ${productImages.position} ASC
+              LIMIT 1
+            )`,
+            defaultVariantId: sql<string | null>`(
+              SELECT ${variants.id}
+              FROM ${variants}
+              WHERE ${variants.productId} = ${products.id}
+              ORDER BY ${variants.isDefault} DESC, ${variants.createdAt} ASC
+              LIMIT 1
+            )`,
+            soldQty: sql<number>`CAST(COALESCE((
+              SELECT SUM(${orderItems.qty})
+              FROM ${orderItems}
+              WHERE ${orderItems.productId} = ${products.id}
+            ), 0) AS SIGNED)`,
+          })
+          .from(products)
+          .leftJoin(brands, eq(products.brandId, brands.id))
+          .where(and(eq(products.status, "active"), isNull(products.deletedAt)))
+          .orderBy(
+            desc(sql`COALESCE((
+              SELECT SUM(${orderItems.qty})
+              FROM ${orderItems}
+              WHERE ${orderItems.productId} = ${products.id}
+            ), 0)`),
+            desc(products.createdAt),
+          )
+          .limit(6),
+        db
+          .select({
+            id: categories.id,
+            name: categories.name,
+            slug: categories.slug,
+            imageUrl: sql<string | null>`(
+              SELECT ${productImages.url}
+              FROM ${productImages}
+              INNER JOIN ${productCategories} ON ${productCategories.productId} = ${productImages.productId}
+              WHERE ${productCategories.categoryId} = ${categories.id}
+              ORDER BY ${productImages.position} ASC
+              LIMIT 1
+            )`,
+          })
+          .from(categories)
+          .where(
+            and(
+              eq(categories.depth, 0),
+              eq(categories.status, "active"),
+              isNull(categories.deletedAt),
+            ),
+          )
+          .orderBy(asc(categories.position), asc(categories.name))
+          .limit(12),
+        db
+          .select({
+            id: brands.id,
+            name: brands.name,
+            slug: brands.slug,
+          })
+          .from(brands)
+          .where(isNull(brands.deletedAt))
+          .orderBy(asc(brands.name))
+          .limit(8),
+        db
+          .select({ count: sql<number>`CAST(COUNT(*) AS SIGNED)` })
+          .from(products)
+          .where(and(eq(products.status, "active"), isNull(products.deletedAt))),
+      ]);
 
-    return { featured, rootCategories, allBrands };
+    const totalActiveProducts = totalCountRows[0]?.count ?? 0;
+
+    return {
+      featured,
+      topSelling,
+      rootCategories,
+      allBrands,
+      totalActiveProducts,
+    };
   },
   ["store-home-data"],
-  { tags: ["products", "categories", "brands"] },
+  { tags: ["products", "categories", "brands", "orders"] },
 );
 
 export async function listStoreProductsCursor(opts: {

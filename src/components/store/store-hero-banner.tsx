@@ -5,64 +5,37 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { ChevronLeft, ChevronRight } from "@/components/store/icons";
+import type { HeroSlideItem } from "@/modules/settings/queries";
 
-const SLIDES = [
-  {
-    id: 1,
-    img: "/banners/organic-food-1.jpg",
-    alt: "অর্গানিক ফুড ও প্রাকৃতিক পুষ্টিকর পণ্য",
-    link: "/products",
-  },
-  {
-    id: 2,
-    img: "https://cdn.falaqfood.com/uploads/media/2026/10/01a16d91-89b6-7561-bfa9-987946b2c69a.webp",
-    alt: "প্রাইমাল গোল্ড - আপনার শক্তি, এনার্জি ও স্ট্যামিনা থাকুক দীর্ঘস্থায়ী",
-    link: "/products?category=special",
-  },
-  {
-    id: 3,
-    img: "https://cdn.falaqfood.com/uploads/media/2026/10/01a16d92-2d04-7f66-b64a-2c82e031a4a3.webp",
-    alt: "রসুনজিরা - কালোজিরা, রসুন ও মধুর ভেষজ কম্বিনেশন",
-    link: "/products?category=special",
-  },
-  {
-    id: 4,
-    img: "https://cdn.falaqfood.com/uploads/media/2026/10/01a16d94-c459-71d2-8ce9-b7d2acd9b719.webp",
-    alt: "ফ্লেভার বক্স হানি কম্বো কালেকশন",
-    link: "/products?category=honey",
-  },
-];
+export interface StoreHeroBannerProps {
+  slides: readonly HeroSlideItem[];
+  sideTop: HeroSlideItem;
+  sideBottom: HeroSlideItem;
+}
 
-const SIDE_TOP = {
-  id: "side-top",
-  img: "https://cdn.falaqfood.com/uploads/media/2026/10/01a16d94-172f-7ab1-bbaa-7d735410ab7f.webp",
-  alt: "সবসময় সব আয়োজনে পরিবারের সাথে - শাহী মশলা",
-  link: "/products?category=spices",
-};
-
-const SIDE_BOTTOM = {
-  id: "side-bottom",
-  img: "https://cdn.falaqfood.com/uploads/media/2026/10/01a16d94-6cca-7577-8c34-581babd4da4f.webp",
-  alt: "আয়োজনে প্রতিদিন ঘি - প্রিমিয়াম গাওয়া ঘি",
-  link: "/products?category=oil",
-};
-
-export function StoreHeroBanner() {
+export function StoreHeroBanner({
+  slides,
+  sideTop,
+  sideBottom,
+}: StoreHeroBannerProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
+    if (slides.length <= 1) return;
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % SLIDES.length);
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 4500);
     return () => clearInterval(timer);
-  }, []);
+  }, [slides.length]);
+
+  if (slides.length === 0) return null;
 
   const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + SLIDES.length) % SLIDES.length);
+    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
   };
 
   const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % SLIDES.length);
+    setCurrentSlide((prev) => (prev + 1) % slides.length);
   };
 
   return (
@@ -70,7 +43,7 @@ export function StoreHeroBanner() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 items-stretch w-full">
         <div className="lg:col-span-8 relative group rounded-2xl overflow-hidden shadow-card-sm border border-slate-200/80 bg-gray-100 flex items-center h-[210px] sm:h-[300px] md:h-[360px] lg:h-[400px]">
           <div className="relative w-full h-full overflow-hidden">
-            {SLIDES.map((slide, index) => (
+            {slides.map((slide, index) => (
               <div
                 key={slide.id}
                 className={`absolute inset-0 w-full h-full transition-opacity duration-700 ease-in-out ${
@@ -111,7 +84,7 @@ export function StoreHeroBanner() {
           </button>
 
           <div className="absolute bottom-3.5 sm:bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 sm:gap-2">
-            {SLIDES.map((_, idx) => (
+            {slides.map((_, idx) => (
               <button
                 key={idx}
                 type="button"
@@ -129,12 +102,12 @@ export function StoreHeroBanner() {
 
         <div className="lg:col-span-4 flex flex-col sm:flex-row lg:flex-col gap-4 lg:gap-5 justify-between h-auto lg:h-[400px]">
           <Link
-            href={SIDE_TOP.link}
+            href={sideTop.link}
             className="flex-1 rounded-2xl overflow-hidden shadow-card-sm hover:shadow-card-md border border-slate-200/80 bg-gray-100 transition-all group h-[140px] sm:h-[180px] lg:h-[190px] relative block"
           >
             <Image
-              src={SIDE_TOP.img}
-              alt={SIDE_TOP.alt}
+              src={sideTop.img}
+              alt={sideTop.alt}
               fill
               className="object-cover object-center group-hover:scale-105 transition-transform duration-300"
               priority
@@ -142,12 +115,12 @@ export function StoreHeroBanner() {
           </Link>
 
           <Link
-            href={SIDE_BOTTOM.link}
+            href={sideBottom.link}
             className="flex-1 rounded-2xl overflow-hidden shadow-card-sm hover:shadow-card-md border border-slate-200/80 bg-gray-100 transition-all group h-[140px] sm:h-[180px] lg:h-[190px] relative block"
           >
             <Image
-              src={SIDE_BOTTOM.img}
-              alt={SIDE_BOTTOM.alt}
+              src={sideBottom.img}
+              alt={sideBottom.alt}
               fill
               className="object-cover object-center group-hover:scale-105 transition-transform duration-300"
             />

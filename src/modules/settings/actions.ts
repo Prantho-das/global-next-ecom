@@ -16,6 +16,7 @@ const saveSettingsSchema = z.object({
     "checkout",
     "notifications",
     "fraud",
+    "storefront",
   ]),
   entries: z.record(z.string().min(1).max(120), z.unknown()),
 });

@@ -10,19 +10,20 @@ import { TrackingPixels } from "@/components/store/tracking-pixels";
 import { getSession } from "@/lib/auth";
 import { getCategoriesTreeCached } from "@/modules/catalog/queries";
 import { getActivePricingContext } from "@/modules/pricing/queries";
-import { getActiveCartView } from "@/modules/sales/queries";
+import { getActiveCartView, getStoreHomeDataCached } from "@/modules/sales/queries";
 import { getSiteSettings } from "@/modules/settings/queries";
 
 export default async function StoreLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
-  const [session, cookieStore, settings, pricingCtx, categories] =
+  const [session, cookieStore, settings, pricingCtx, categories, homeData] =
     await Promise.all([
       getSession(),
       cookies(),
       getSiteSettings(),
       getActivePricingContext(),
       getCategoriesTreeCached(),
+      getStoreHomeDataCached(),
     ]);
 
   const activeEventBanner =
@@ -60,30 +61,55 @@ export default async function StoreLayout({
   const cart = await getActiveCartView(sessionId, userId);
   const cartCount = cart.items.reduce((sum, i) => sum + i.qty, 0);
 
-  const headerCategories = categories.map((c) => ({
+  const activeCategories = categories.filter((c) => c.status === "active");
+  const rootCategories = activeCategories.filter((c) => c.parentId === null);
+  const headerCategories = rootCategories.map((c) => ({
     id: c.id,
     name: c.name,
     slug: c.slug,
+  }));
+  const sidebarCategories = rootCategories.map((root) => ({
+    id: root.id,
+    name: root.name,
+    slug: root.slug,
+    subcategories: activeCategories
+      .filter((child) => child.parentId === root.id)
+      .map((child) => ({ label: child.name, slug: child.slug })),
   }));
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FBFDFB] text-[#0F2920] font-sans antialiased selection:bg-[#E8B65D] selection:text-[#0F2920] w-full">
       <StoreHeader
         siteName={settings.siteName}
+        tagline={settings.tagline}
+        supportPhone={settings.supportPhone}
+        logoUrl={settings.logoUrl}
         announcement={topBannerText}
         cartCount={cartCount}
         categories={headerCategories}
       />
 
       <div className="w-full flex items-start flex-1 min-h-0">
-        <StoreSidebar />
+        <StoreSidebar
+          categories={sidebarCategories}
+          totalProductCount={homeData.totalActiveProducts}
+          supportPhone={settings.supportPhone}
+        />
 
         <main className="flex-1 flex flex-col gap-4 sm:gap-6 min-w-0 overflow-x-hidden px-3 sm:px-4 lg:px-6 pt-4 sm:pt-5 lg:pt-6 pb-12">
           {children}
         </main>
       </div>
 
-      <StoreFooter />
+      <StoreFooter
+        siteName={settings.siteName}
+        tagline={settings.tagline}
+        supportEmail={settings.supportEmail}
+        supportPhone={settings.supportPhone}
+        storeAddress={settings.storeAddress}
+        logoUrl={settings.logoUrl}
+        categories={headerCategories.slice(0, 4)}
+      />
 
       <MobileBottomNav cartCount={cartCount} />
 
